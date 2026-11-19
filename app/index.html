@@ -17,6 +17,10 @@
   --seal: #C6361D;
   --ok: #2C7A4D;
   --warn: #A86E12;
+  /* income series, fixed order: AI, バイト, その他 */
+  --s-ai: #2a78d6;
+  --s-baito: #eb6834;
+  --s-other: #1baf7a;
   --f-display: "Dela Gothic One", "Hiragino Kaku Gothic StdN", "Yu Gothic", sans-serif;
   --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -26,12 +30,14 @@
   :root:not([data-theme="light"]) {
     --bg: #10151B; --surface: #19212A; --sunk: #131A21; --ink: #E5E9ED; --muted: #98A2AD;
     --line: #2A343F; --accent: #8EA5FF; --accent-soft: #24304F; --seal: #FF6B4E; --ok: #5DC58C; --warn: #E2AA4C;
+    --s-ai: #3987e5; --s-baito: #d95926; --s-other: #199e70;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10151B; --surface: #19212A; --sunk: #131A21; --ink: #E5E9ED; --muted: #98A2AD;
   --line: #2A343F; --accent: #8EA5FF; --accent-soft: #24304F; --seal: #FF6B4E; --ok: #5DC58C; --warn: #E2AA4C;
+  --s-ai: #3987e5; --s-baito: #d95926; --s-other: #199e70;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -132,12 +138,12 @@ textarea { resize: vertical; min-height: 64px; }
 .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal .wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding-bottom: 2px; }
 .cal .wd.sun { color: var(--seal); } .cal .wd.sat { color: var(--accent); }
-.day { aspect-ratio: 1 / 1.05; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 4px; display: grid; grid-template-rows: auto 1fr auto; cursor: pointer; text-align: left; min-width: 0; overflow: hidden; }
+.day { aspect-ratio: 1 / 1.5; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 4px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 2px; cursor: pointer; text-align: left; min-width: 0; overflow: hidden; }
 .day.out { opacity: .35; }
 .day.today { border-color: var(--accent); border-width: 2px; }
 .day[aria-pressed=true] { background: var(--accent-soft); }
 .day .n { font-family: var(--f-mono); font-size: 13px; font-weight: 700; }
-.day .marks { display: flex; gap: 2px; flex-wrap: wrap; align-content: start; }
+.day .marks { overflow: hidden; min-height: 14px; display: flex; gap: 2px; flex-wrap: wrap; align-content: start; }
 .day .mk { font-size: 9px; font-weight: 700; padding: 0 3px; border-radius: 3px; background: var(--sunk); color: var(--muted); line-height: 1.5; }
 .day .mk.b { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
 .day .rate { height: 4px; border-radius: 2px; background: var(--sunk); overflow: hidden; }
@@ -178,7 +184,35 @@ textarea { resize: vertical; min-height: 64px; }
 
 /* nav */
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.nav-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+.nav-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
+
+/* money */
+.yen { font-family: var(--f-display); font-weight: 400; font-size: clamp(34px, 10vw, 48px); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.yen small { font-size: .5em; margin-right: 2px; }
+.comp { display: flex; gap: 2px; height: 14px; border-radius: 4px; overflow: hidden; background: var(--sunk); }
+.comp i { display: block; height: 100%; min-width: 0; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; }
+.lg { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.lg .sw, .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.lg b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.sw-ai { background: var(--s-ai); } .sw-baito { background: var(--s-baito); } .sw-other { background: var(--s-other); }
+.brk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 0; border-top: 1px dashed var(--line); align-items: center; }
+.brk:first-child { border-top: 0; }
+.brk .lbl { display: flex; gap: 8px; align-items: center; min-width: 0; font-weight: 700; }
+.brk .lbl span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brk .amt { font-family: var(--f-mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+.brk .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.brk .bar i { display: block; height: 100%; border-radius: 3px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { background: var(--sunk); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; }
+.kpi b { font-family: var(--f-mono); font-size: 18px; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.payline { font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
+.day .amt { font-family: var(--f-mono); font-size: 9px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; letter-spacing: -.03em; }
+.jobrow { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; padding: 10px 0; border-top: 1px dashed var(--line); }
+.jobrow:first-child { border-top: 0; }
+@media (max-width: 520px) { .jobrow { grid-template-columns: 1fr 1fr; } }
+.cbx { display: flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; color: var(--muted); }
 .nav a { text-decoration: none; color: var(--muted); display: grid; justify-items: center; gap: 2px; padding: 8px 2px 10px; font-size: 11px; font-weight: 700; }
 .nav a .k { font-family: var(--f-display); font-size: 17px; line-height: 1.2; }
 .nav a[aria-current=page] { color: var(--accent); }
@@ -201,6 +235,7 @@ textarea { resize: vertical; min-height: 64px; }
     <a href="#brief" data-v="brief"><span class="k">報</span>朝刊</a>
     <a href="#cal" data-v="cal"><span class="k">暦</span>予定</a>
     <a href="#notes" data-v="notes"><span class="k">帳</span>記録</a>
+    <a href="#money" data-v="money"><span class="k">稼</span>収入</a>
     <a href="#growth" data-v="growth"><span class="k">伸</span>成長</a>
   </div>
 </nav>
@@ -297,7 +332,61 @@ const SECTIONS = [
 const DEFAULT_PROFILE = {
   goal: "AIで業務効率化や成果物を必要な人に届け、一人でも大きな利益を生み出す",
   dayStart: "08:00", dayEnd: "23:00", commute: 30,
+  jobs: [{ id: "j1", name: "バイト", wage: 1100, transport: 0, night: true }],
+  aiTarget: 0,
 };
+const INCOME_CAT = { ai: "AI", baito: "バイト", other: "その他" };
+const yen = (n) => "¥" + Math.round(n || 0).toLocaleString("ja-JP");
+
+/* ============ pay & income ============ */
+function jobOf(ev) { const jobs = prof().jobs || []; return jobs.find((j) => j.id === ev.jobId) || jobs[0] || DEFAULT_PROFILE.jobs[0]; }
+// 労働基準法34条: 6時間超で45分、8時間超で60分の休憩
+const autoBreak = (span) => (span > 480 ? 60 : span > 360 ? 45 : 0);
+function shiftPay(ev) {
+  const job = jobOf(ev); const wage = +(ev.wage ?? job.wage) || 0;
+  let s = toMin(ev.start), e = toMin(ev.end); if (e <= s) e += 1440;
+  const span = e - s; const brk = ev.breakMin == null || ev.breakMin === "" ? autoBreak(span) : Math.max(0, +ev.breakMin);
+  const mid = s + span / 2, b0 = mid - brk / 2, b1 = mid + brk / 2;
+  let work = 0, night = 0, over = 0;
+  for (let m = s; m < e; m++) {
+    if (m >= b0 && m < b1) continue;
+    work++; const t = m % 1440;
+    if (t >= 1320 || t < 300) night++;      // 深夜 22:00–5:00 は25%増
+    if (work > 480) over++;                 // 1日8時間を超えた分は25%増
+  }
+  const per = wage / 60;
+  const base = Math.round(work * per);
+  const nightX = job.night !== false ? Math.round(night * per * 0.25) : 0;
+  const overX = Math.round(over * per * 0.25);
+  const transport = +job.transport || 0;
+  return { job, wage, work, brk, night, over, base, nightX, overX, transport, total: base + nightX + overX + transport };
+}
+function earningsFor(date) {
+  const items = [];
+  for (const ev of S.events.filter((e) => e.date === date && e.kind === "baito")) {
+    const p = shiftPay(ev);
+    items.push({ cat: "baito", label: p.job.name || "バイト", amount: p.total, pay: p, ev });
+  }
+  for (const r of S.income.filter((x) => x.date === date)) items.push({ cat: r.cat === "ai" ? "ai" : "other", label: r.source || INCOME_CAT[r.cat], amount: +r.amount || 0, rec: r });
+  const sum = (c) => items.filter((i) => i.cat === c).reduce((a, i) => a + i.amount, 0);
+  return { items, ai: sum("ai"), baito: sum("baito"), other: sum("other"), total: items.reduce((a, i) => a + i.amount, 0) };
+}
+function monthStats(ym) {
+  const [y, m] = ym.split("-").map(Number); const n = new Date(y, m, 0).getDate();
+  const out = { ai: 0, baito: 0, other: 0, total: 0, src: {}, aiHours: 0, aiWithHours: 0, workMin: 0, baitoPay: 0, days: [] };
+  for (let d = 1; d <= n; d++) {
+    const date = `${ym}-${pad(d)}`; const e = earningsFor(date);
+    if (e.items.length) out.days.push({ date, ...e });
+    for (const it of e.items) {
+      out[it.cat] += it.amount; out.total += it.amount;
+      const k = it.cat + "|" + it.label; out.src[k] = out.src[k] || { cat: it.cat, label: it.label, amount: 0, count: 0 };
+      out.src[k].amount += it.amount; out.src[k].count++;
+      if (it.cat === "baito") { out.workMin += it.pay.work; out.baitoPay += it.pay.base + it.pay.nightX + it.pay.overX; }
+      if (it.cat === "ai" && +it.rec?.hours > 0) { out.aiHours += +it.rec.hours; out.aiWithHours += it.amount; }
+    }
+  }
+  return out;
+}
 
 /* ============ helpers ============ */
 const $ = (s, r = document) => r.querySelector(s);
@@ -367,7 +456,7 @@ function showSync(msg) { const el = $("#sync"); el.textContent = msg; el.hidden 
 
 /* ============ state ============ */
 const S = {
-  profile: null, days: {}, events: [], briefs: [], ideas: [], diary: {}, posts: [], reviews: {},
+  profile: null, days: {}, events: [], briefs: [], ideas: [], diary: {}, posts: [], reviews: {}, income: [], moneyMonth: null,
   loaded: {}, view: "today", calMonth: null, selDate: today(), briefDate: null, notesTab: ls("kc:notesTab") || "ideas",
   busy: {}, aiOut: {},
 };
@@ -531,7 +620,7 @@ async function aiText(slot, prompt) {
 function render() {
   const v = S.view;
   document.querySelectorAll(".nav a").forEach((a) => { if (a.dataset.v === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  const html = { today: viewToday, brief: viewBrief, cal: viewCal, notes: viewNotes, growth: viewGrowth }[v]();
+  const html = { today: viewToday, brief: viewBrief, cal: viewCal, notes: viewNotes, money: viewMoney, growth: viewGrowth }[v]();
   const app = $("#app");
   const focusId = document.activeElement?.id; const pos = document.activeElement?.selectionStart;
   app.innerHTML = html;
@@ -601,10 +690,32 @@ function viewToday() {
     ${diaryForm(d, diary)}
   </section>
 
+  ${incomeDayPanel(d, "今日の収入")}
+
   <section class="panel" aria-labelledby="h-brief-mini">
     <div class="sec-head"><h2 id="h-brief-mini">今朝の朝刊</h2><a href="#brief" class="linkbtn">全部読む</a></div>
     ${brief ? `<div class="headline" style="font-size:18px">${esc(brief.headline || "")}</div>${brief.todayFocus ? `<div class="o-detail">今日の注目：${esc(brief.todayFocus)}</div>` : ""}`
       : `<div class="muted">今朝の朝刊はまだ届いていません。毎朝8時までに届きます。</div>`}
+  </section>`;
+}
+function payDetail(p) {
+  const parts = [`${yen(p.wage)}×${fmtMin(p.work)}`];
+  if (p.nightX) parts.push(`深夜${fmtMin(p.night)} +${yen(p.nightX)}`);
+  if (p.overX) parts.push(`残業${fmtMin(p.over)} +${yen(p.overX)}`);
+  if (p.transport) parts.push(`交通費 ${yen(p.transport)}`);
+  if (p.brk) parts.push(`休憩${p.brk}分`);
+  return parts.join(" · ");
+}
+function incomeDayPanel(d, heading) {
+  const e = earningsFor(d);
+  return `<section class="panel" aria-label="${esc(heading)}">
+    <div class="sec-head"><h2>${esc(heading)}</h2><span class="yen" style="font-size:26px">${yen(e.total)}</span></div>
+    ${e.items.length ? `<div>${e.items.map((it) => `<div class="brk">
+        <div class="lbl"><span class="sw sw-${it.cat}" aria-hidden="true"></span><span>${INCOME_CAT[it.cat]}：${esc(it.label)}</span></div>
+        <div class="amt">${yen(it.amount)}</div>
+        ${it.pay ? `<div class="payline" style="grid-column:1/-1">${esc(it.ev.start)}–${esc(it.ev.end)}　${payDetail(it.pay)}</div>` : it.rec?.client || it.rec?.memo ? `<div class="payline" style="grid-column:1/-1">${esc([it.rec.client, it.rec.memo].filter(Boolean).join(" · "))}</div>` : ""}
+      </div>`).join("")}</div>` : `<div class="muted" style="font-size:13px">まだ記録がありません。バイト代はシフトから自動で計算し、AIの売上は「収入」から記録します。</div>`}
+    <div class="row"><a class="btn small" href="#money" data-act="income-for" data-date="${d}">収入を記録</a></div>
   </section>`;
 }
 function diaryForm(d, diary) {
@@ -676,6 +787,7 @@ function viewCal() {
         return `<button class="day${d.getMonth() !== mo - 1 ? " out" : ""}${s === t ? " today" : ""}" data-act="pick" data-date="${s}" aria-pressed="${s === sel}" aria-label="${d.getMonth() + 1}月${d.getDate()}日${de.length ? "、予定" + de.length + "件" : ""}">
           <span class="n">${d.getDate()}</span>
           <span class="marks">${de.slice(0, 2).map((e) => `<span class="mk${e.kind === "baito" ? " b" : ""}">${e.kind === "baito" ? "バ" : esc((e.title || "予").slice(0, 2))}</span>`).join("")}${de.length > 2 ? `<span class="mk">+${de.length - 2}</span>` : ""}</span>
+          ${(() => { const amt = earningsFor(s).total; return amt ? `<span class="amt" title="${yen(amt)}">${amt >= 10000 ? (amt / 10000).toFixed(1) + "万" : amt.toLocaleString("ja-JP")}</span>` : ""; })()}
           <span class="rate">${dd ? `<i style="width:${r * 100}%"></i>` : ""}</span>
         </button>`;
       }).join("")}
@@ -685,7 +797,7 @@ function viewCal() {
 
   <section class="panel" aria-labelledby="h-day">
     <div class="sec-head"><h2 id="h-day">${sdt.getMonth() + 1}月${sdt.getDate()}日（${WD[sdt.getDay()]}）</h2><div class="chips">${modeChips(sel, doc)}</div></div>
-    <div>${evs.length ? evs.map((e) => `<div class="ev"><span class="t">${esc(e.start)}–${esc(e.end)}</span><span>${e.kind === "baito" ? `<span class="chip baito">バイト</span> ` : ""}${esc(e.title)}</span><button class="btn small ghost" data-act="del-ev" data-id="${e.id}" aria-label="${esc(e.title)}を削除">削除</button></div>`).join("") : `<div class="muted">予定はまだありません。</div>`}</div>
+    <div>${evs.length ? evs.map((e) => `<div class="ev"><span class="t">${esc(e.start)}–${esc(e.end)}</span><span style="min-width:0">${e.kind === "baito" ? `<span class="chip baito">バイト</span> ` : ""}${esc(e.title)}${e.kind === "baito" ? (() => { const p = shiftPay(e); return `<br><b class="mono">${yen(p.total)}</b> <span class="payline">${payDetail(p)}</span>`; })() : ""}</span><button class="btn small ghost" data-act="del-ev" data-id="${e.id}" aria-label="${esc(e.title)}を削除">削除</button></div>`).join("") : `<div class="muted">予定はまだありません。</div>`}</div>
     <div class="eyebrow">予定を追加</div>
     <div class="row">
       <button class="btn small" data-act="preset" data-s="10:00" data-e="15:00">バイト 10–15時</button>
@@ -698,8 +810,16 @@ function viewCal() {
       <label class="f">開始<input type="time" id="ev-start" value="13:00"></label>
       <label class="f">終了<input type="time" id="ev-end" value="15:00"></label>
     </div>
+    <div class="grid2" id="baito-fields" hidden>
+      <label class="f">バイト先<select id="ev-job">${(prof().jobs || []).map((j) => `<option value="${esc(j.id)}">${esc(j.name)}（${yen(j.wage)}）</option>`).join("")}</select></label>
+      <label class="f">時給（空欄＝バイト先の時給）<input type="number" id="ev-wage" min="0" step="10" placeholder="例：1200"></label>
+      <label class="f">休憩（分・空欄＝自動）<input type="number" id="ev-break" min="0" step="5" placeholder="6時間超45分／8時間超60分"></label>
+    </div>
+    <div class="muted" style="font-size:12px">バイト代は「時給×実働時間」に、深夜（22時〜5時）と1日8時間を超えた分の25%増し、交通費を足して自動で計算します。</div>
     <div class="row"><button class="btn primary" data-act="add-ev">追加してタスクを組み直す</button></div>
   </section>
+
+  ${incomeDayPanel(sel, "この日の収入")}
 
   <section class="sheet" aria-labelledby="h-day-tasks">
     <div class="panel" style="border:0;border-radius:0;border-bottom:1px solid var(--line)">
@@ -754,6 +874,101 @@ function viewNotes() {
   return `<header class="top"><div><div class="brand">起業司令室 · 記録</div><h2>記録帳</h2></div></header>${seg}${body}`;
 }
 
+function chart6(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const months = Array.from({ length: 6 }, (_, i) => ymd(new Date(y, m - 6 + i, 1)).slice(0, 7));
+  const data = months.map((k) => ({ k, ...monthStats(k) }));
+  const max = Math.max(1, ...data.map((d) => d.total));
+  const step = max > 200000 ? 100000 : max > 50000 ? 50000 : max > 20000 ? 10000 : 5000;
+  const top = Math.ceil(max / step) * step;
+  const W = 560, H = 210, L = 52, B = 26, T = 14, R = 8; const cw = (W - L - R) / 6;
+  const yv = (v) => T + (H - T - B) * (1 - v / top);
+  const ticks = [0, top / 2, top].map((v) => `<line x1="${L}" x2="${W - R}" y1="${yv(v)}" y2="${yv(v)}" stroke="var(--line)" ${v ? 'stroke-dasharray="3 4"' : ""}/><text x="${L - 6}" y="${yv(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${v >= 10000 ? v / 10000 + "万" : v.toLocaleString("ja-JP")}</text>`).join("");
+  const cols = data.map((d, i) => {
+    const x = L + i * cw + cw * 0.22, w = cw * 0.56; let base = yv(0); let segs = "";
+    const parts = [["ai", d.ai], ["baito", d.baito], ["other", d.other]].filter(([, v]) => v > 0);
+    parts.forEach(([c, v], j) => {
+      const h = yv(0) - yv(v); const gap = j ? 2 : 0; const hh = Math.max(1, h - gap);
+      segs += `<rect x="${x}" y="${base - gap - hh}" width="${w}" height="${hh}" rx="2" fill="var(--s-${c})"><title>${d.k.replace("-", "年")}月 ${INCOME_CAT[c]}：${yen(v)}</title></rect>`;
+      base -= h;
+    });
+    const cur = d.k === ym;
+    return `<g>${segs}${d.total ? `<text x="${x + w / 2}" y="${yv(d.total) - 5}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--f-mono)">${d.total >= 10000 ? (d.total / 10000).toFixed(1) + "万" : d.total.toLocaleString("ja-JP")}</text>` : ""}
+      <text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${cur ? "var(--ink)" : "var(--muted)"}" font-weight="${cur ? 700 : 400}" font-family="var(--f-mono)">${+d.k.slice(5)}月</text></g>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="直近6か月の収入の推移（AI・バイト・その他）">${ticks}${cols}</svg>`;
+}
+function viewMoney() {
+  const ym = S.moneyMonth || today().slice(0, 7); const [y, m] = ym.split("-").map(Number);
+  const st = monthStats(ym); const p = prof();
+  const pct = (v) => (st.total ? Math.round((v / st.total) * 100) : 0);
+  const srcs = Object.values(st.src).sort((a, b) => b.amount - a.amount);
+  const maxSrc = Math.max(1, ...srcs.map((s) => s.amount));
+  const pastSources = [...new Set(S.income.map((r) => r.source).filter(Boolean))].slice(0, 30);
+  const baitoHourly = st.workMin ? st.baitoPay / (st.workMin / 60) : 0;
+  const aiHourly = st.aiHours ? st.aiWithHours / st.aiHours : 0;
+  const inDate = S.incomeDate || today();
+  return `
+  <header class="top">
+    <div><div class="brand">起業司令室 · 収入</div><div class="date-big" style="font-size:40px">${y}.${pad(m)}</div></div>
+    <div class="row"><button class="btn small" data-act="mmonth" data-d="-1">← 前月</button><button class="btn small" data-act="mmonth" data-d="0">今月</button><button class="btn small" data-act="mmonth" data-d="1">次月 →</button></div>
+  </header>
+
+  <section class="panel" aria-label="今月の収入">
+    <div class="eyebrow">${m}月の収入</div>
+    <div class="yen">${yen(st.total)}</div>
+    <div class="comp" role="img" aria-label="内訳 AI ${pct(st.ai)}%、バイト ${pct(st.baito)}%、その他 ${pct(st.other)}%">${[["ai", st.ai], ["baito", st.baito], ["other", st.other]].filter(([, v]) => v > 0).map(([c, v]) => `<i class="sw-${c}" style="flex:${v}" title="${INCOME_CAT[c]} ${yen(v)}"></i>`).join("")}</div>
+    <div class="legend">${[["ai", st.ai], ["baito", st.baito], ["other", st.other]].map(([c, v]) => `<div class="lg"><span class="sw sw-${c}"></span><span>${INCOME_CAT[c]} <span class="muted">${pct(v)}%</span></span><b>${yen(v)}</b></div>`).join("")}</div>
+    ${p.aiTarget ? `<div class="meter"><div class="meter-text"><span>AIの目標 ${yen(p.aiTarget)}</span><span class="mono">${Math.round((st.ai / p.aiTarget) * 100)}%</span></div><div class="meter-bar"><i style="width:${Math.min(100, (st.ai / p.aiTarget) * 100)}%;background:var(--s-ai)"></i></div></div>` : ""}
+    <div class="kpis">
+      <div class="kpi"><b>${baitoHourly ? yen(baitoHourly) : "—"}</b><span>バイトの実質時給（${fmtMin(st.workMin)}）</span></div>
+      <div class="kpi"><b>${aiHourly ? yen(aiHourly) : "—"}</b><span>AIの時給（作業時間を入れた分）</span></div>
+      <div class="kpi"><b>${pct(st.ai)}%</b><span>収入に占めるAIの割合</span></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-addin">
+    <h2 id="h-addin">収入を記録</h2>
+    <div class="grid2">
+      <label class="f">日付<input type="date" id="in-date" value="${esc(inDate)}"></label>
+      <label class="f">種類<select id="in-cat"><option value="ai">AI（案件・販売など）</option><option value="other">その他</option></select></label>
+      <label class="f">内容（何で稼いだか）<input type="text" id="in-source" list="src-list" placeholder="例：議事録の自動化、ココナラ出品"></label>
+      <label class="f">金額（円）<input type="number" id="in-amount" min="0" step="100" placeholder="例：15000"></label>
+      <label class="f">取引先（任意）<input type="text" id="in-client" placeholder="例：〇〇美容室"></label>
+      <label class="f">作業時間（時間・任意）<input type="number" id="in-hours" min="0" step="0.5" placeholder="例：3"></label>
+    </div>
+    <datalist id="src-list">${pastSources.map((s) => `<option value="${esc(s)}"></option>`).join("")}</datalist>
+    <label class="f">メモ（任意）<input type="text" id="in-memo" placeholder="例：継続の相談あり"></label>
+    <div class="row"><button class="btn primary" data-act="add-income">記録する</button><span class="muted" style="font-size:12px">バイト代は「予定」に入れたシフトから自動で計算されます</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-src">
+    <div class="sec-head"><h2 id="h-src">何で稼いだか</h2><span class="muted" style="font-size:12px">${m}月 · 金額順</span></div>
+    ${srcs.length ? `<div>${srcs.map((s) => `<div class="brk">
+      <div class="lbl"><span class="sw sw-${s.cat}" aria-hidden="true"></span><span>${INCOME_CAT[s.cat]}：${esc(s.label)} <span class="muted" style="font-weight:400">${s.count}件</span></span></div>
+      <div class="amt">${yen(s.amount)}</div>
+      <div class="bar"><i class="sw-${s.cat}" style="width:${(s.amount / maxSrc) * 100}%"></i></div>
+    </div>`).join("")}</div>` : `<div class="empty"><b>${m}月の収入はまだありません</b><span>「予定」にバイトのシフトを入れるか、上のフォームからAIの売上を記録してください。</span></div>`}
+  </section>
+
+  <section class="panel" aria-labelledby="h-trend">
+    <div class="sec-head"><h2 id="h-trend">6か月の推移</h2></div>
+    <div class="legend">${["ai", "baito", "other"].map((c) => `<div class="lg"><span class="sw sw-${c}"></span><span>${INCOME_CAT[c]}</span><span></span></div>`).join("")}</div>
+    <div class="chart-wrap">${chart6(ym)}</div>
+  </section>
+
+  <section class="sheet" aria-labelledby="h-daily">
+    <div class="panel" style="border:0;border-radius:0;border-bottom:1px solid var(--line)"><h2 id="h-daily">日別の明細</h2></div>
+    ${st.days.length ? `<div class="list">${[...st.days].reverse().map((d) => `<div class="li">
+      <div class="top-line"><span class="mono" style="font-weight:700">${+d.date.slice(5, 7)}/${+d.date.slice(8)}（${WD[parseYmd(d.date).getDay()]}）</span><b class="mono">${yen(d.total)}</b></div>
+      ${d.items.map((it) => `<div class="brk" style="padding:6px 0">
+        <div class="lbl" style="font-weight:500"><span class="sw sw-${it.cat}" aria-hidden="true"></span><span>${INCOME_CAT[it.cat]}：${esc(it.label)}${it.rec?.client ? ` <span class="muted">· ${esc(it.rec.client)}</span>` : ""}</span></div>
+        <div class="amt" style="font-weight:500">${yen(it.amount)}${it.rec ? ` <button class="linkbtn" data-act="del-income" data-id="${esc(it.rec.id)}" aria-label="この収入を削除">削除</button>` : ""}</div>
+        ${it.pay ? `<div class="payline" style="grid-column:1/-1">${esc(it.ev.start)}–${esc(it.ev.end)}　${payDetail(it.pay)}</div>` : it.rec?.hours ? `<div class="payline" style="grid-column:1/-1">作業${it.rec.hours}時間 · 時給換算 ${yen(it.amount / it.rec.hours)}</div>` : ""}
+      </div>`).join("")}
+    </div>`).join("")}</div>` : `<div class="empty">この月の明細はありません。</div>`}
+  </section>`;
+}
 function statsSummary() {
   const t = today();
   const doneTotal = Object.values(S.days).reduce((a, d) => a + (d.tasks || []).filter((x) => x.done).length, 0);
@@ -823,7 +1038,17 @@ function viewGrowth() {
       <label class="f">活動開始<input type="time" id="pf-ds" value="${esc(p.dayStart)}"></label>
       <label class="f">活動終了<input type="time" id="pf-de" value="${esc(p.dayEnd)}"></label>
       <label class="f">バイトの移動時間（片道・分）<input type="number" id="pf-cm" min="0" max="180" value="${esc(p.commute)}"></label>
+      <label class="f">AIで稼ぐ月の目標（円）<input type="number" id="pf-ait" min="0" step="1000" value="${esc(p.aiTarget || "")}" placeholder="例：50000"></label>
     </div>
+    <div class="eyebrow">バイト先と時給</div>
+    <div>${(p.jobs || []).map((j) => `<div class="jobrow">
+      <label class="f">名前<input type="text" id="job-name-${esc(j.id)}" value="${esc(j.name)}"></label>
+      <label class="f">時給（円）<input type="number" id="job-wage-${esc(j.id)}" min="0" step="10" value="${esc(j.wage)}"></label>
+      <label class="f">交通費（1回・円）<input type="number" id="job-tr-${esc(j.id)}" min="0" step="10" value="${esc(j.transport)}"></label>
+      <div style="display:grid;gap:6px"><label class="cbx"><input type="checkbox" id="job-n-${esc(j.id)}" ${j.night !== false ? "checked" : ""}>深夜25%増</label>
+        <button class="btn small ghost" data-act="del-job" data-id="${esc(j.id)}">削除</button></div>
+    </div>`).join("")}</div>
+    <div class="row"><button class="btn small" data-act="add-job">バイト先を追加</button></div>
     <div class="row"><button class="btn primary" data-act="save-profile">設定を保存</button></div>
     ${Store.local ? `<div class="notice">この表示では、データはこのブラウザの中だけに保存されます。claude.ai で開くと、どの端末からも同じデータを使えます。</div>` : ""}
   </section>`;
@@ -905,11 +1130,37 @@ document.addEventListener("click", async (e) => {
     S.calMonth = +ds.d === 0 ? today().slice(0, 7) : ymd(new Date(y, m - 1 + +ds.d, 1)).slice(0, 7); if (+ds.d === 0) S.selDate = today(); render();
   }
   else if (a === "pick") { S.selDate = ds.date; render(); }
-  else if (a === "preset") { await addEvent({ title: "バイト", kind: "baito", start: ds.s, end: ds.e }); }
+  else if (a === "preset") { const j = (prof().jobs || [])[0]; await addEvent({ title: j?.name || "バイト", kind: "baito", start: ds.s, end: ds.e, jobId: j?.id || null }); }
   else if (a === "add-ev") {
-    const title = ($("#ev-title")?.value || "").trim() || ($("#ev-kind").value === "baito" ? "バイト" : "予定");
+    const kind = $("#ev-kind").value; const job = kind === "baito" ? (prof().jobs || []).find((j) => j.id === $("#ev-job")?.value) : null;
+    const title = ($("#ev-title")?.value || "").trim() || (job?.name || (kind === "baito" ? "バイト" : "予定"));
     const start = $("#ev-start").value, end = $("#ev-end").value; if (!start || !end) { toast("開始と終了の時刻を入れてください"); return; }
-    await addEvent({ title, kind: $("#ev-kind").value, start, end });
+    const extra = kind === "baito" ? { jobId: job?.id || null, wage: $("#ev-wage").value === "" ? null : +$("#ev-wage").value, breakMin: $("#ev-break").value === "" ? null : +$("#ev-break").value } : {};
+    await addEvent({ title, kind, start, end, ...extra });
+  }
+  else if (a === "income-for") { S.incomeDate = ds.date; }
+  else if (a === "mmonth") {
+    const base = S.moneyMonth || today().slice(0, 7); const [y, m] = base.split("-").map(Number);
+    S.moneyMonth = +ds.d === 0 ? today().slice(0, 7) : ymd(new Date(y, m - 1 + +ds.d, 1)).slice(0, 7); render();
+  }
+  else if (a === "add-income") {
+    const amount = Math.round(+$("#in-amount").value || 0); const source = ($("#in-source").value || "").trim();
+    if (!amount) { toast("金額を入れてください"); return; }
+    if (!source) { toast("何で稼いだか（内容）を入れてください"); return; }
+    const date = $("#in-date").value || today();
+    await Store.put("income", uid(), { date, cat: $("#in-cat").value === "ai" ? "ai" : "other", source: source.slice(0, 60), client: ($("#in-client").value || "").trim().slice(0, 60),
+      amount, hours: $("#in-hours").value === "" ? null : Math.max(0, +$("#in-hours").value), memo: ($("#in-memo").value || "").trim().slice(0, 200), createdAt: Date.now() });
+    ["in-amount", "in-source", "in-client", "in-hours", "in-memo"].forEach((id) => { const el = $("#" + id); if (el) el.value = ""; });
+    S.moneyMonth = date.slice(0, 7); toast(`${yen(amount)} を記録しました`); render();
+  }
+  else if (a === "del-income") { await Store.del("income", ds.id); toast("削除しました"); }
+  else if (a === "add-job") {
+    const p = readProfileForm(); p.jobs = [...(p.jobs || []), { id: "j" + uid(), name: "新しいバイト先", wage: 1100, transport: 0, night: true }];
+    S.profile = p; await Store.put("config", "profile", p); render();
+  }
+  else if (a === "del-job") {
+    const p = readProfileForm(); if ((p.jobs || []).length <= 1) { toast("バイト先は1つ以上必要です"); return; }
+    p.jobs = p.jobs.filter((j) => j.id !== ds.id); S.profile = p; await Store.put("config", "profile", p); render();
   }
   else if (a === "del-ev") {
     const ev = S.events.find((x) => x.id === ds.id); if (!ev) return;
@@ -939,18 +1190,30 @@ ${week}
     if (text) { const cur = S.reviews[wk] || {}; const doc = { ...strip(cur), aiFeedback: text, updatedAt: Date.now() }; S.reviews[wk] = { id: wk, ...doc }; await Store.put("reviews", wk, doc); render(); }
   }
   else if (a === "save-profile") {
-    const p = { ...prof(), goal: $("#pf-goal").value.trim() || DEFAULT_PROFILE.goal, startDate: $("#pf-start").value || startDate(), dayStart: $("#pf-ds").value || "08:00", dayEnd: $("#pf-de").value || "23:00", commute: Math.max(0, Math.min(180, +$("#pf-cm").value || 0)) };
+    const p = readProfileForm();
     S.profile = p; await Store.put("config", "profile", p); await savePlan(today()); toast("設定を保存し、今日のタスクを組み直しました"); render();
   }
 });
 const strip = (o) => { const { id, ...r } = o || {}; return r; };
+function readProfileForm() {
+  const cur = prof(); const v = (id) => document.getElementById(id)?.value;
+  const jobs = (cur.jobs || []).map((j) => ({
+    id: j.id, name: (v("job-name-" + j.id) ?? j.name).trim() || "バイト",
+    wage: Math.max(0, +(v("job-wage-" + j.id) ?? j.wage) || 0), transport: Math.max(0, +(v("job-tr-" + j.id) ?? j.transport) || 0),
+    night: document.getElementById("job-n-" + j.id) ? document.getElementById("job-n-" + j.id).checked : j.night !== false,
+  }));
+  return { ...cur, jobs, goal: (v("pf-goal") ?? cur.goal).trim() || DEFAULT_PROFILE.goal, startDate: v("pf-start") || startDate(),
+    dayStart: v("pf-ds") || cur.dayStart, dayEnd: v("pf-de") || cur.dayEnd, commute: Math.max(0, Math.min(180, +(v("pf-cm") ?? cur.commute) || 0)),
+    aiTarget: Math.max(0, +(v("pf-ait") ?? cur.aiTarget) || 0) };
+}
+document.addEventListener("change", (e) => { if (e.target.id === "ev-kind") { const f = $("#baito-fields"); if (f) f.hidden = e.target.value !== "baito"; } });
 async function addIdea({ title, memo = "", from = "", url = "" }) {
   await Store.put("ideas", uid(), { title: title.slice(0, 200), memo: memo.slice(0, 1000), from, url, date: today(), createdAt: Date.now() });
   if (!S.days[today()]) await savePlan(today());
   setTaskDone(today(), "brief", true); toast("アイデア帳に保存しました"); render();
 }
-async function addEvent({ title, kind, start, end }) {
-  const date = S.selDate; const ev = { date, title: title.slice(0, 60), kind, start, end, createdAt: Date.now() };
+async function addEvent({ title, kind, start, end, ...extra }) {
+  const date = S.selDate; const ev = { date, title: title.slice(0, 60), kind, start, end, ...extra, createdAt: Date.now() };
   const id = uid(); S.events = [...S.events, { id, ...ev }];
   await Store.put("events", id, ev);
   if (date >= today()) { await savePlan(date, S.events); toast("予定を追加し、タスクを組み直しました"); } else toast("予定を追加しました");
@@ -959,7 +1222,7 @@ async function addEvent({ title, kind, start, end }) {
 }
 
 /* ============ routing + boot ============ */
-const VIEWS = ["today", "brief", "cal", "notes", "growth"];
+const VIEWS = ["today", "brief", "cal", "notes", "money", "growth"];
 function route() { const h = location.hash.slice(1); S.view = VIEWS.includes(h) ? h : "today"; render(); window.scrollTo(0, 0); }
 window.addEventListener("hashchange", route);
 
@@ -972,6 +1235,7 @@ function subscribe() {
   Store.watch("diary", (rows) => { S.diary = Object.fromEntries(rows.map((r) => [r.id, r])); render(); });
   Store.watch("posts", (rows) => { S.posts = rows; render(); });
   Store.watch("reviews", (rows) => { S.reviews = Object.fromEntries(rows.map((r) => [r.id, r])); render(); });
+  Store.watch("income", (rows) => { S.income = rows; render(); });
 }
 async function boot() {
   route();
