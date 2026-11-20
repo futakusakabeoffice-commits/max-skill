@@ -108,9 +108,10 @@ SNS投稿の企画・文章作成</textarea></div>
     <p>AIに返信文を書いてもらうための「合いことば」のようなものです。</p>
     <ol class="do">
       <li><a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> を開き、ログイン（またはアカウント作成）</li>
-      <li>メニューの <span class="ui">Billing</span>（お支払い）でクレジットを購入します。最低額（5ドル程度）で十分です</li>
-      <li>メニューの <span class="ui">API Keys</span> → <span class="ui">Create Key</span> を押し、名前に「お問い合わせ」と入れて作成</li>
-      <li><code>sk-ant-</code> で始まる長い文字が表示されるので、<strong>コピーしてメモ帳などに一時保存</strong></li>
+      <li>最初の画面の「組織のクレジット」が $0 なら、<span class="ui">残高を追加</span> で5ドル分ほど購入します（すでに金額があれば不要）</li>
+      <li>同じ画面の <span class="ui">API キーを取得</span> を押します（右上のメニュー → <span class="ui">キー</span> からでも同じ）</li>
+      <li><span class="ui">キーを作成</span> を押し、名前に「お問い合わせ」と入れて作成</li>
+      <li><code>sk-ant-</code> で始まる長い文字が表示されるので、<strong>コピーしてメモアプリなどに一時保存</strong>（3からはパソコンで作業するので、パソコンでも見られる場所に）</li>
     </ol>
     <div class="note"><strong>注意</strong>　キーは一度しか表示されません。また、他人に見せたり、SNSやチャットに貼ったりしないでください。</div>
     <div class="tip">料金は1件の返信につき数円ほどです。月に30件来ても100〜200円程度の見込みです。</div>
@@ -119,7 +120,8 @@ SNS投稿の企画・文章作成</textarea></div>
 
   <!-- 3 -->
   <section class="step" data-step="3">
-    <header><div class="num">3</div><div><h2>Google Apps Script にコードを貼り付ける</h2><p class="time">3分</p></div></header>
+    <header><div class="num">3</div><div><h2>Google Apps Script にコードを貼り付ける</h2><p class="time">3分 ・ ここからはパソコンで</p></div></header>
+    <div class="note"><strong>パソコンで開いてください</strong>　Apps Script はスマホではほとんど操作できません。このページもパソコンで開き直すと、1で入力した内容は消えるので、もう一度入力してください。</div>
     <ol class="do">
       <li>下の <span class="ui">コードをコピー</span> を押す（1で入力した内容が入っています）</li>
       <li><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com を開く</a>（お問い合わせを受けたい Gmail でログイン）。開いたら左上の <span class="ui">新しいプロジェクト</span> を押します（すでに編集画面ならそのままでOK）</li>
