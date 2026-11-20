@@ -24,3 +24,6 @@ AIで起業を目指すための、毎日の「指令」と朝刊をまとめた
 
 ## データ
 claude.ai のアーティファクトのデータベースに保存（collections: `config`, `days`, `events`, `briefs`, `ideas`, `diary`, `posts`, `reviews`, `income`）。
+
+## お問い合わせ自動返信
+`inquiry/` — Googleフォームで受けたお問い合わせに、受付確認メールを自動送信し、AIが返信文をGmailの下書きに作成します（送信は本人が確認してから）。設定手順は `inquiry/README.md`。
