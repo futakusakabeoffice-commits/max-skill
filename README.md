@@ -24,3 +24,6 @@ AIで起業を目指すための、毎日の「指令」と朝刊をまとめた
 
 ## データ
 claude.ai のアーティファクトのデータベースに保存（collections: `config`, `days`, `events`, `briefs`, `ideas`, `diary`, `posts`, `reviews`, `income`）。
+
+## 練習用の単体ツール
+- 議事録メーカー: `minutes/`（文字起こしを議事録の型に自動で当てはめる）。詳しくは `minutes/README.md`

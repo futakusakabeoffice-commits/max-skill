@@ -1,0 +1,535 @@
+<title>議事録メーカー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@700;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column. Step 1 transcript in, step 2 a ruled "official form" sheet (shaded label column, like a paper 議事録 form), step 3 plain-text output. */
+:root {
+  --bg: #E9EDF1;
+  --paper: #FFFFFF;
+  --label: #F2F5F8;
+  --ink: #1B2430;
+  --muted: #5B6878;
+  --line: #C9D2DC;
+  --accent: #17606B;
+  --accent-soft: #DDEEF0;
+  --ok: #2F7A4A;
+  --warn: #9A640C;
+  --cont: #5D55A0;
+  --danger: #B3331F;
+  --f-display: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161C; --paper: #19212A; --label: #1F2832; --ink: #E3E8ED; --muted: #98A4B1; --line: #2E3945;
+    --accent: #5FC2CC; --accent-soft: #1E3A3E; --ok: #63C38A; --warn: #E0A84A; --cont: #A69CF0; --danger: #FF7A63;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161C; --paper: #19212A; --label: #1F2832; --ink: #E3E8ED; --muted: #98A4B1; --line: #2E3945;
+  --accent: #5FC2CC; --accent-soft: #1E3A3E; --ok: #63C38A; --warn: #E0A84A; --cont: #A69CF0; --danger: #FF7A63;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 820px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 18px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-family: var(--f-display); font-weight: 900; font-size: clamp(26px, 6vw, 34px); letter-spacing: .02em; line-height: 1.2; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 18px; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.seg { display: flex; gap: 4px; background: var(--line); padding: 3px; border-radius: 10px; }
+.seg a { flex: 1; text-align: center; text-decoration: none; color: var(--muted); font-weight: 700; font-size: 14px; padding: 8px 4px; border-radius: 8px; }
+.seg a[aria-current=page] { background: var(--paper); color: var(--ink); }
+
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.step { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.step h2 span { font-family: var(--f-mono); font-size: 13px; color: var(--accent); margin-right: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--paper); padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.btn.small { padding: 3px 10px; font-size: 12px; }
+.btn.danger { color: var(--danger); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+textarea, input[type=text], input[type=date], input[type=time], select { width: 100%; border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+textarea { resize: vertical; }
+#tx { min-height: 150px; font-size: 14px; }
+.note { font-size: 13px; color: var(--muted); }
+.status { font-size: 14px; font-weight: 700; color: var(--accent); }
+.status.err { color: var(--danger); }
+.chip { display: inline-flex; padding: 1px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--label); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.chip.ai { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* the ruled sheet */
+.sheet { border: 1.5px solid var(--ink); background: var(--paper); border-radius: 2px; }
+.sheet-title { text-align: center; font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: .5em; padding: 12px 0 10px .5em; border-bottom: 1.5px solid var(--ink); }
+.grid { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); }
+.grid > .lb { background: var(--label); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 10px; font-weight: 700; font-size: 13px; display: flex; align-items: flex-start; }
+.grid > .cell { border-bottom: 1px solid var(--line); padding: 6px 8px; min-width: 0; display: grid; gap: 6px; }
+.grid > .lb.last, .grid > .cell.last { border-bottom: 0; }
+.cell input[type=text], .cell textarea, .cell input[type=date], .cell input[type=time], .cell select { border-color: transparent; background: transparent; padding: 4px 6px; }
+.cell input:hover, .cell textarea:hover { border-color: var(--line); }
+.cell input:focus, .cell textarea:focus, .cell select:focus { border-color: var(--accent); background: var(--paper); }
+.when { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; align-items: center; }
+.when span { color: var(--muted); }
+.sec-band { grid-column: 1 / -1; background: var(--label); border-bottom: 1px solid var(--line); padding: 6px 10px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ag { grid-column: 1 / -1; border-bottom: 1px solid var(--line); padding: 10px; display: grid; gap: 6px; border-left: 4px solid var(--ok); }
+.ag[data-status="保留"] { border-left-color: var(--warn); }
+.ag[data-status="継続審議"] { border-left-color: var(--cont); }
+.ag-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 7.5em auto; gap: 6px; align-items: center; }
+.ag-no { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ag-head input { font-weight: 700; }
+.ag select { border: 1px solid var(--line); font-size: 13px; font-weight: 700; padding: 4px 6px; }
+.ag label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.ag label textarea, .ag label input { color: var(--ink); font-size: 15px; border: 1px solid var(--line); }
+.todo { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 4px; align-items: center; }
+.todo.head { font-size: 12px; color: var(--muted); font-weight: 700; padding: 0 6px; }
+@media (max-width: 560px) {
+  .grid { grid-template-columns: 1fr; }
+  .grid > .lb { border-right: 0; border-bottom: 0; padding: 8px 10px 0; background: transparent; color: var(--muted); font-size: 12px; }
+  .when { grid-template-columns: 1fr 1fr auto 1fr; }
+  .ag-head { grid-template-columns: auto minmax(0, 1fr); }
+  .ag-head select { grid-column: 1 / 2; }
+  .todo { grid-template-columns: 1fr 1fr; }
+  .todo .t-task { grid-column: 1 / -1; }
+  .todo.head { display: none; }
+  .todo + .todo { border-top: 1px dashed var(--line); padding-top: 6px; }
+}
+.sheet-end { text-align: right; padding: 8px 14px; font-weight: 700; border-top: 1.5px solid var(--ink); }
+
+pre.out { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--f-body); font-size: 14px; background: var(--label); border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 420px; overflow: auto; }
+
+.list { display: grid; }
+.li { padding: 12px 0; border-top: 1px dashed var(--line); display: grid; gap: 4px; min-width: 0; }
+.li:first-child { border-top: 0; padding-top: 0; }
+.li h3 { font-size: 16px; overflow-wrap: anywhere; }
+.empty { text-align: center; padding: 24px 8px; color: var(--muted); display: grid; gap: 4px; }
+.empty b { color: var(--ink); }
+ol.how { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; max-width: calc(100vw - 32px); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>議事録メーカー</h1>
+    <p class="lead">文字起こしを貼るだけで、決まった型の議事録に自動で当てはめます。手で書き込むこともできます。</p>
+  </header>
+  <nav class="seg" aria-label="画面の切り替え">
+    <a href="#make" data-v="make">作る</a>
+    <a href="#saved" data-v="saved">保存した議事録</a>
+    <a href="#recorder" data-v="recorder">レコーダーと連携</a>
+  </nav>
+  <main id="app" style="display:grid;gap:18px;min-width:0"></main>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============ helpers ============ */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = (n) => String(n).padStart(2, "0");
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const WD = ["日", "月", "火", "水", "木", "金", "土"];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const lines = (s) => String(s || "").split("\n").map((x) => x.replace(/^[\s・\-*●•]+/, "").trim()).filter(Boolean);
+const joinArr = (v) => Array.isArray(v) ? v.map((x) => String(x ?? "").trim()).filter(Boolean).join("\n") : String(v ?? "");
+function jpDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return s || "";
+  const [y, m, d] = s.split("-").map(Number); return `${y}年${m}月${d}日（${WD[new Date(y, m - 1, d).getDay()]}）`;
+}
+function shortDue(s) { if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return s || ""; const [, m, d] = s.split("-").map(Number); return `${m}/${d}（${WD[new Date(s.replace(/-/g, "/")).getDay()]}）`; }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2600); }
+function ls(key, val) { try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch { return null; } }
+const STATUSES = ["決定", "保留", "継続審議"];
+
+/* ============ the template ============ */
+const blankAgenda = () => ({ topic: "", status: "決定", points: "", conclusion: "" });
+const blankTodo = () => ({ task: "", owner: "", due: "" });
+const blank = () => ({
+  title: "", date: today(), start: "", end: "", place: "", attendees: "", absentees: "", recorder: "",
+  purpose: "", agenda: [blankAgenda()], decisions: "", todos: [blankTodo()], pending: "", next: "", notes: "", source: "manual",
+});
+
+function toText(m) {
+  const out = [];
+  const time = m.start || m.end ? `　${m.start || ""}〜${m.end || ""}` : "";
+  out.push(`【議事録】${m.title || "（会議名）"}`, "");
+  out.push(`日時：${jpDate(m.date)}${time}`);
+  if (m.place) out.push(`場所：${m.place}`);
+  out.push(`出席者：${m.attendees || "―"}`);
+  if (m.absentees) out.push(`欠席者：${m.absentees}`);
+  if (m.recorder) out.push(`記録者：${m.recorder}`);
+  if (m.purpose) out.push("", "■ 目的", m.purpose);
+  const ag = (m.agenda || []).filter((a) => a.topic || a.points || a.conclusion);
+  if (ag.length) {
+    out.push("", "■ 議題と内容");
+    ag.forEach((a, i) => {
+      out.push(`${i + 1}. ${a.topic || "（議題）"}【${a.status || "決定"}】`);
+      lines(a.points).forEach((p) => out.push(`　・${p}`));
+      if (a.conclusion) out.push(`　→ 結論：${a.conclusion}`);
+    });
+  }
+  const dec = lines(m.decisions);
+  out.push("", "■ 決定事項", ...(dec.length ? dec.map((x) => `・${x}`) : ["・なし"]));
+  const td = (m.todos || []).filter((t) => t.task);
+  out.push("", "■ ToDo（担当／期限）", ...(td.length ? td.map((t) => `・${t.task}（担当：${t.owner || "未定"}／期限：${shortDue(t.due) || "未定"}）`) : ["・なし"]));
+  const pen = lines(m.pending);
+  if (pen.length) out.push("", "■ 保留・検討事項", ...pen.map((x) => `・${x}`));
+  if (m.next) out.push("", "■ 次回予定", m.next);
+  if (m.notes) out.push("", "■ 備考", m.notes);
+  out.push("", "以上");
+  return out.join("\n");
+}
+
+/* ============ store: artifact db, or this browser ============ */
+let db = null, sample = null;
+const Store = {
+  local: true,
+  watch(cb) {
+    if (!this.local) {
+      return db.collection("minutes").onSnapshot(
+        (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        () => toast("保存データに接続できませんでした。開き直してください")
+      );
+    }
+    this._cb = cb; cb(this._all());
+  },
+  _all() { try { return Object.entries(JSON.parse(ls("gm:minutes") || "{}")).map(([id, v]) => ({ id, ...v })); } catch { return []; } },
+  _write(o) { ls("gm:minutes", JSON.stringify(o)); this._cb?.(this._all()); },
+  async put(id, data) {
+    if (!this.local) return db.collection("minutes").doc(id).set(data);
+    const o = Object.fromEntries(this._all().map(({ id, ...v }) => [id, v])); o[id] = data; this._write(o);
+  },
+  async del(id) {
+    if (!this.local) return db.collection("minutes").doc(id).delete();
+    const o = Object.fromEntries(this._all().map(({ id, ...v }) => [id, v])); delete o[id]; this._write(o);
+  },
+};
+
+/* ============ state ============ */
+function loadDraft() { try { const d = JSON.parse(ls("gm:draft") || "null"); return d && d.cur ? d : null; } catch { return null; } }
+const draft = loadDraft();
+const S = { view: "make", cur: draft?.cur || blank(), curId: draft?.curId || null, dirty: !!draft?.dirty, tx: draft?.tx || "", list: [], busy: false, status: "", statusErr: false, confirmDel: null };
+function saveDraft() { ls("gm:draft", JSON.stringify({ cur: S.cur, curId: S.curId, dirty: S.dirty, tx: S.tx })); }
+
+/* ============ AI ============ */
+function cleanTranscript(t) {
+  return String(t).replace(/\r/g, "").split("\n")
+    .filter((l) => { const x = l.trim(); return x !== "WEBVTT" && !/^\d+$/.test(x) && !/^\d{1,2}:\d{2}(:\d{2})?([.,]\d+)?\s*-->/.test(x); })
+    .join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+async function aiFill() {
+  const text = cleanTranscript(S.tx);
+  if (!text) { setStatus("文字起こしを貼り付けるか、ファイルを読み込んでください", true); return; }
+  if (!sample || S.busy) return;
+  const MAX = 80000;
+  S.busy = true; setStatus(`AIがテンプレに当てはめています…（${text.length.toLocaleString()}文字）`); render();
+  const m = S.cur;
+  const prompt = `あなたは日本の会社の会議の書記です。次の文字起こしから議事録を作り、JSONだけを返してください。
+
+ルール:
+- 文字起こしに出てくる内容だけを使う。人名・数字・日付・金額を推測で作らない。分からない項目は空文字 "" か空の配列にする
+- 話者名が「話者1」「Speaker A」などの場合はそのまま使う
+- 文体は議事録らしく簡潔に（体言止め、または「〜する」）。雑談・あいづち・言い直しは省く
+- 議題ごとに、要点を1項目40字以内で2〜5個、結論を1文
+- status は「決定」「保留」「継続審議」のどれか
+- decisions には、はっきり決まったことだけを書く
+- todos は「誰が・何を・いつまでに」。期限が「来週金曜」のように相対的なら、会議の日付 ${m.date} から計算して YYYY-MM-DD にする。計算できなければ原文のまま。担当が分からなければ ""
+- pending には、結論が出なかったことや宿題として持ち帰ったこと
+- 時刻は HH:MM。文字起こしから分からなければ ""
+
+すでに分かっている情報:
+会議名: ${m.title || "不明（内容から20字以内で付ける）"}
+日付: ${m.date}
+出席者: ${m.attendees || "不明（文字起こしの話者から書く）"}
+
+形式:
+{"title":"","start":"","end":"","place":"","attendees":[""],"absentees":[],"purpose":"会議の目的を1文","agenda":[{"topic":"","status":"決定","points":[""],"conclusion":""}],"decisions":[""],"todos":[{"task":"","owner":"","due":""}],"pending":[""],"next":"次回の日時・内容","notes":""}
+
+文字起こし:
+"""
+${text.slice(0, MAX)}
+"""`;
+  try {
+    const r = await sample.json(prompt, { modelTier: "default" });
+    const keep = (mine, ai) => (String(mine || "").trim() ? mine : String(ai ?? "").trim());
+    const ag = (Array.isArray(r?.agenda) ? r.agenda : []).filter((a) => a && (a.topic || a.points)).map((a) => ({
+      topic: String(a.topic || ""), status: STATUSES.includes(a.status) ? a.status : "決定", points: joinArr(a.points), conclusion: String(a.conclusion || ""),
+    }));
+    const td = (Array.isArray(r?.todos) ? r.todos : []).filter((t) => t && t.task).map((t) => ({ task: String(t.task), owner: String(t.owner || ""), due: String(t.due || "") }));
+    S.cur = {
+      ...m,
+      title: keep(m.title, r?.title), start: keep(m.start, r?.start), end: keep(m.end, r?.end), place: keep(m.place, r?.place),
+      attendees: keep(m.attendees, joinArr(r?.attendees).replace(/\n/g, "、")), absentees: keep(m.absentees, joinArr(r?.absentees).replace(/\n/g, "、")),
+      purpose: keep(m.purpose, r?.purpose), agenda: ag.length ? ag : [blankAgenda()], decisions: joinArr(r?.decisions),
+      todos: td.length ? td : [blankTodo()], pending: joinArr(r?.pending), next: keep(m.next, r?.next), notes: keep(m.notes, r?.notes), source: "ai",
+    };
+    S.dirty = true; saveDraft();
+    setStatus(text.length > MAX ? `当てはめました。長いため最初の${MAX.toLocaleString()}文字までを使っています。内容を確認してください` : "テンプレに当てはめました。内容を確認して保存してください");
+  } catch (e) {
+    const msg = { not_granted: "AIの利用が許可されていません。ページ上部の許可設定を確認してください", rate_limited: "AIの利用上限に達しました。しばらくしてからお試しください", prompt_too_large: "文字起こしが長すぎます。半分ずつ貼り付けてください" }[e?.code];
+    setStatus(msg || "AIで当てはめられませんでした。もう一度お試しください", true);
+  } finally { S.busy = false; render(); }
+}
+function setStatus(msg, err = false) { S.status = msg; S.statusErr = err; const el = $("#ai-status"); if (el) { el.textContent = msg; el.classList.toggle("err", err); } }
+
+const EXAMPLE = `【例文】
+話者A：では始めます。今日は来月から始める予約返信の自動化について決めたいです。
+話者B：はい。今は予約の問い合わせに手で返信していて、1日40分くらいかかっています。
+話者A：AIで返信の下書きを作って、スタッフが確認して送る形にしましょう。全部自動はまだ怖いので。
+話者C：賛成です。ツールは無料プランで1か月試して、効果を見てから有料にするか決めませんか。
+話者A：それでいきましょう。テスト期間は12月1日から31日までにします。
+話者B：返信のひな形は私が5パターン作ります。来週の金曜までに出します。
+話者C：私は無料プランの設定をします。来週水曜までに。
+話者A：料金プランをどれにするかは、テストの結果を見てから次回決めます。
+話者A：次回は12月26日の15時から、結果の報告会にしましょう。以上です。`;
+
+/* ============ views ============ */
+const fid = (k) => "f-" + k.replace(/\./g, "-");
+const inp = (k, v, ph = "", type = "text") => `<input type="${type}" id="${fid(k)}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph)}" aria-label="${esc(ph || k)}">`;
+const ta = (k, v, ph = "", rows = 2) => `<textarea id="${fid(k)}" data-k="${k}" rows="${rows}" placeholder="${esc(ph)}" aria-label="${esc(ph || k)}">${esc(v)}</textarea>`;
+
+function sheet() {
+  const m = S.cur;
+  const ag = (m.agenda || []).map((a, i) => `
+    <div class="ag" data-status="${esc(a.status)}">
+      <div class="ag-head">
+        <span class="ag-no">議題 ${i + 1}</span>
+        ${inp(`agenda.${i}.topic`, a.topic, "議題名（例：予約返信の自動化）")}
+        <select id="${fid(`agenda.${i}.status`)}" data-k="agenda.${i}.status" aria-label="議題${i + 1}の状態">${STATUSES.map((s) => `<option${s === a.status ? " selected" : ""}>${s}</option>`).join("")}</select>
+        <button class="btn small" data-act="del-ag" data-i="${i}" aria-label="議題${i + 1}を削除">削除</button>
+      </div>
+      <label>話し合った要点（1行に1つ）${ta(`agenda.${i}.points`, a.points, "例：今は手作業で1日40分かかっている", 3)}</label>
+      <label>結論${inp(`agenda.${i}.conclusion`, a.conclusion, "例：AIで下書き→スタッフ確認の形で始める")}</label>
+    </div>`).join("");
+  const todos = (m.todos || []).map((t, i) => `
+    <div class="todo">
+      <span class="t-task">${inp(`todos.${i}.task`, t.task, "やること")}</span>
+      ${inp(`todos.${i}.owner`, t.owner, "担当")}
+      ${inp(`todos.${i}.due`, t.due, "期限", "date")}
+      <button class="btn small" data-act="del-todo" data-i="${i}" aria-label="ToDo${i + 1}を削除">×</button>
+    </div>`).join("");
+  return `
+  <section class="sheet" aria-label="議事録テンプレート">
+    <div class="sheet-title">議事録</div>
+    <div class="grid">
+      <div class="lb">会議名</div><div class="cell">${inp("title", m.title, "例：予約返信 自動化の打ち合わせ")}</div>
+      <div class="lb">日時</div><div class="cell"><div class="when">${inp("date", m.date, "日付", "date")}${inp("start", m.start, "開始", "time")}<span>〜</span>${inp("end", m.end, "終了", "time")}</div></div>
+      <div class="lb">場所</div><div class="cell">${inp("place", m.place, "例：本店 会議室／Zoom")}</div>
+      <div class="lb">出席者</div><div class="cell">${inp("attendees", m.attendees, "例：山田、佐藤、鈴木（「、」区切り）")}</div>
+      <div class="lb">欠席者</div><div class="cell">${inp("absentees", m.absentees, "いなければ空欄")}</div>
+      <div class="lb">記録者</div><div class="cell">${inp("recorder", m.recorder, "議事録を書いた人")}</div>
+      <div class="lb">目的</div><div class="cell">${ta("purpose", m.purpose, "この会議で決めたいこと", 2)}</div>
+      <div class="sec-band"><span>議題と内容</span><button class="btn small" data-act="add-ag">＋ 議題を追加</button></div>
+      ${ag}
+      <div class="lb">決定事項</div><div class="cell">${ta("decisions", m.decisions, "決まったことを1行に1つ", 3)}</div>
+      <div class="sec-band"><span>ToDo（誰が・何を・いつまでに）</span><button class="btn small" data-act="add-todo">＋ ToDoを追加</button></div>
+      <div class="cell" style="grid-column:1/-1"><div class="todo head"><span>やること</span><span>担当</span><span>期限</span><span></span></div>${todos}</div>
+      <div class="lb">保留・検討</div><div class="cell">${ta("pending", m.pending, "結論が出なかったこと・持ち帰り事項", 2)}</div>
+      <div class="lb">次回予定</div><div class="cell">${inp("next", m.next, "例：12/26（金）15:00〜 結果報告")}</div>
+      <div class="lb last">備考</div><div class="cell last">${ta("notes", m.notes, "その他メモ", 2)}</div>
+    </div>
+    <div class="sheet-end">以上</div>
+  </section>`;
+}
+
+function viewMake() {
+  return `
+  <section class="panel" aria-labelledby="h1s">
+    <div class="step"><h2 id="h1s"><span>STEP 1</span>文字起こしを入れる</h2><span class="note">.txt / .srt / .vtt / .md に対応</span></div>
+    <textarea id="tx" placeholder="AIボイスレコーダーの文字起こしをここに貼り付け">${esc(S.tx)}</textarea>
+    <div class="row">
+      <button class="btn primary" data-act="ai" ${sample && !S.busy ? "" : "disabled"}>${S.busy ? "当てはめ中…" : "AIでテンプレに当てはめる"}</button>
+      <label class="btn" for="file">ファイルを読み込む</label><input type="file" id="file" class="vh" accept=".txt,.md,.srt,.vtt,text/plain">
+      <button class="btn" data-act="example">例文を入れる</button>
+    </div>
+    <div id="ai-status" class="status${S.statusErr ? " err" : ""}" aria-live="polite">${esc(S.status)}</div>
+    ${sample ? "" : `<div class="note">AIの当てはめは claude.ai でこのページを開いたときに使えます。下のテンプレへの手入力はいつでもできます。</div>`}
+  </section>
+
+  <div class="step"><h2><span>STEP 2</span>テンプレを確認・修正</h2>
+    <div class="row">${S.cur.source === "ai" ? `<span class="chip ai">AIが記入</span>` : ""}<span class="chip">${S.curId ? (S.dirty ? "未保存の変更あり" : "保存済み") : "新規"}</span><button class="btn small" data-act="new">新しく作る</button></div>
+  </div>
+  ${sheet()}
+
+  <section class="panel" aria-labelledby="h3s">
+    <div class="step"><h2 id="h3s"><span>STEP 3</span>保存・共有</h2></div>
+    <div class="row"><button class="btn primary" data-act="save">保存する</button><button class="btn" data-act="copy">テキストでコピー</button></div>
+    <div class="note">メール・LINE・Slack にそのまま貼れる形です。</div>
+    <pre class="out" id="out" tabindex="0">${esc(toText(S.cur))}</pre>
+  </section>`;
+}
+
+function viewSaved() {
+  const list = [...S.list].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.updatedAt || 0) - (a.updatedAt || 0));
+  return `<section class="panel">
+    <div class="step"><h2>保存した議事録</h2><span class="note mono">${list.length}件</span></div>
+    <div class="list">${list.length ? list.map((m) => {
+      const dec = lines(m.decisions).length, td = (m.todos || []).filter((t) => t.task).length;
+      return `<div class="li">
+        <div class="row" style="justify-content:space-between"><h3>${esc(m.title || "（会議名なし）")}</h3><span class="mono muted" style="font-size:13px">${esc(jpDate(m.date))}</span></div>
+        <div class="row"><span class="chip">決定 ${dec}件</span><span class="chip">ToDo ${td}件</span>${m.source === "ai" ? `<span class="chip ai">AIが記入</span>` : ""}</div>
+        <div class="row">
+          <button class="btn small" data-act="open" data-id="${esc(m.id)}">開いて編集</button>
+          <button class="btn small" data-act="copy-id" data-id="${esc(m.id)}">テキストでコピー</button>
+          <button class="btn small danger" data-act="del" data-id="${esc(m.id)}">${S.confirmDel === m.id ? "本当に削除する" : "削除"}</button>
+        </div>
+      </div>`; }).join("") : `<div class="empty"><b>まだ保存した議事録はありません</b><span>「作る」で議事録を作って「保存する」を押すと、ここに並びます。</span></div>`}</div>
+    ${Store.local ? `<div class="note">この表示では、議事録はこのブラウザの中にだけ保存されます。</div>` : ""}
+  </section>`;
+}
+
+const RECORDER_PROMPT = `あなたは会議の書記です。この録音の文字起こしから、次の型どおりに議事録を作ってください。
+・文字起こしにある内容だけを書き、分からない項目は「―」にする
+・雑談、あいづち、言い直しは省き、簡潔な文体で書く
+・期限が「来週金曜」のように相対的なら、日付に直す
+
+【議事録】（会議名）
+
+日時：
+場所：
+出席者：
+欠席者：
+記録者：
+
+■ 目的
+
+■ 議題と内容
+1. （議題）【決定／保留／継続審議】
+　・要点
+　→ 結論：
+
+■ 決定事項
+・
+
+■ ToDo（担当／期限）
+・やること（担当：／期限：）
+
+■ 保留・検討事項
+・
+
+■ 次回予定
+
+■ 備考
+
+以上`;
+
+function viewRecorder() {
+  return `
+  <section class="panel">
+    <h2>AIボイスレコーダーとつなぐ方法</h2>
+    <p class="muted" style="margin:0">機種によってできることが違うので、2つのやり方を用意しました。</p>
+    <h3 style="font-size:15px">A. レコーダー側で、最初からこの型にする</h3>
+    <ol class="how">
+      <li>レコーダーのアプリで「テンプレート」「カスタム要約」「プロンプト」などの設定を開く</li>
+      <li>下の文をコピーして、新しいテンプレートとして登録する</li>
+      <li>録音が終わると、この型の議事録が自動で出てくる</li>
+    </ol>
+    <div class="row"><button class="btn primary" data-act="copy-prompt">テンプレ用の指示文をコピー</button></div>
+    <pre class="out" id="prompt-out" tabindex="0">${esc(RECORDER_PROMPT)}</pre>
+    <h3 style="font-size:15px">B. 文字起こしを書き出して、このページで当てはめる</h3>
+    <ol class="how">
+      <li>レコーダーのアプリから、文字起こしをテキスト（.txt や .srt）で書き出す、またはコピーする</li>
+      <li>「作る」の STEP 1 に貼る（ファイルなら「ファイルを読み込む」）</li>
+      <li>「AIでテンプレに当てはめる」を押して、確認して保存</li>
+    </ol>
+    <p class="note" style="margin:0">B なら、どの機種でも同じ型にそろいます。録音にはお客さまや社外の方の発言も入るので、録音することは事前に伝えておきましょう。</p>
+  </section>`;
+}
+
+/* ============ render + events ============ */
+function render() {
+  document.querySelectorAll(".seg a").forEach((a) => a.dataset.v === S.view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  const focusId = document.activeElement?.id; const pos = document.activeElement?.selectionStart;
+  $("#app").innerHTML = { make: viewMake, saved: viewSaved, recorder: viewRecorder }[S.view]();
+  if (focusId) { const el = document.getElementById(focusId); if (el && el.tagName !== "BUTTON") { el.focus(); try { if (pos != null) el.setSelectionRange(pos, pos); } catch {} } }
+}
+function setPath(obj, path, v) { const ks = path.split("."); let o = obj; for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks.at(-1)] = v; }
+
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.id === "tx") { S.tx = t.value; saveDraft(); return; }
+  if (!t.dataset.k) return;
+  setPath(S.cur, t.dataset.k, t.value); S.dirty = true; saveDraft();
+  if (t.tagName === "SELECT") t.closest(".ag")?.setAttribute("data-status", t.value);
+  const out = $("#out"); if (out) out.textContent = toText(S.cur);
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id !== "file") return;
+  const f = e.target.files?.[0]; if (!f) return;
+  if (f.size > 2 * 1024 * 1024) { toast("ファイルが大きすぎます（2MBまで）"); return; }
+  const r = new FileReader();
+  r.onload = () => { S.tx = cleanTranscript(r.result); saveDraft(); setStatus(`「${f.name}」を読み込みました`); render(); };
+  r.onerror = () => toast("ファイルを読み込めませんでした");
+  r.readAsText(f);
+});
+async function copyText(text, fallbackId) {
+  try { await navigator.clipboard.writeText(text); toast("コピーしました"); }
+  catch { const el = document.getElementById(fallbackId); if (el) { const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); } toast("文字を選択しました。長押しかCtrl+Cでコピーしてください"); }
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const a = el.dataset.act, i = +el.dataset.i;
+  if (a !== "del") S.confirmDel = null;
+  if (a === "ai") aiFill();
+  else if (a === "example") { S.tx = EXAMPLE; saveDraft(); setStatus("例文を入れました。「AIでテンプレに当てはめる」を押してください"); render(); }
+  else if (a === "add-ag") { S.cur.agenda.push(blankAgenda()); S.dirty = true; saveDraft(); render(); }
+  else if (a === "del-ag") { S.cur.agenda.splice(i, 1); if (!S.cur.agenda.length) S.cur.agenda.push(blankAgenda()); S.dirty = true; saveDraft(); render(); }
+  else if (a === "add-todo") { S.cur.todos.push(blankTodo()); S.dirty = true; saveDraft(); render(); }
+  else if (a === "del-todo") { S.cur.todos.splice(i, 1); if (!S.cur.todos.length) S.cur.todos.push(blankTodo()); S.dirty = true; saveDraft(); render(); }
+  else if (a === "new") {
+    if (S.dirty && !el.dataset.sure) { el.dataset.sure = "1"; el.textContent = "保存せずに新しく作る"; return; }
+    S.cur = blank(); S.curId = null; S.dirty = false; S.tx = ""; setStatus(""); saveDraft(); render();
+  }
+  else if (a === "save") {
+    const m = S.cur;
+    if (!m.title.trim() && !(m.agenda || []).some((x) => x.topic)) { toast("会議名か議題を入れてから保存してください"); return; }
+    const id = S.curId || uid();
+    try { await Store.put(id, { ...m, updatedAt: Date.now(), createdAt: m.createdAt || Date.now() }); S.curId = id; S.dirty = false; saveDraft(); toast("保存しました"); render(); }
+    catch (err) { toast(err?.code === "quota_exceeded" ? "保存容量がいっぱいです。古い議事録を削除してください" : "保存できませんでした。もう一度お試しください"); }
+  }
+  else if (a === "copy") copyText(toText(S.cur), "out");
+  else if (a === "copy-prompt") copyText(RECORDER_PROMPT, "prompt-out");
+  else if (a === "copy-id") { const m = S.list.find((x) => x.id === el.dataset.id); if (m) { try { await navigator.clipboard.writeText(toText(m)); toast("コピーしました"); } catch { toast("コピーできませんでした。開いてからコピーしてください"); } } }
+  else if (a === "open") {
+    const m = S.list.find((x) => x.id === el.dataset.id); if (!m) return;
+    const { id, ...rest } = m; S.cur = { ...blank(), ...structuredClone(rest) }; S.curId = id; S.dirty = false; S.tx = ""; setStatus(""); saveDraft();
+    location.hash = "make";
+  }
+  else if (a === "del") {
+    if (S.confirmDel !== el.dataset.id) { S.confirmDel = el.dataset.id; render(); return; }
+    S.confirmDel = null;
+    try { await Store.del(el.dataset.id); if (S.curId === el.dataset.id) { S.curId = null; S.dirty = true; saveDraft(); } toast("削除しました"); } catch { toast("削除できませんでした"); }
+    render();
+  }
+});
+
+const VIEWS = ["make", "saved", "recorder"];
+function route() { const h = location.hash.slice(1); S.view = VIEWS.includes(h) ? h : "make"; render(); window.scrollTo(0, 0); }
+window.addEventListener("hashchange", route);
+async function boot() {
+  route();
+  if (window.claude?.use) {
+    try { db = await window.claude.use("db"); } catch { db = null; }
+    try { sample = await window.claude.use("sample"); } catch { sample = null; }
+  }
+  Store.local = !db;
+  Store.watch((rows) => { S.list = rows; if (S.view !== "make") render(); });
+  render();
+}
+boot();
+</script>
