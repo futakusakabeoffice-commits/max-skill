@@ -116,6 +116,12 @@ pre.out { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family
 .li h3 { font-size: 16px; overflow-wrap: anywhere; }
 .empty { text-align: center; padding: 24px 8px; color: var(--muted); display: grid; gap: 4px; }
 .empty b { color: var(--ink); }
+.mail-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.fl { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); min-width: 0; }
+.fl input, .fl textarea, .fl select { color: var(--ink); font-weight: 400; font-size: 15px; }
+#f-mailBody, #f-summary { font-size: 14px; }
+.cbx { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.cbx input { width: 18px; height: 18px; accent-color: var(--accent); }
 ol.how { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
 
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; max-width: calc(100vw - 32px); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
@@ -162,7 +168,13 @@ const blankTodo = () => ({ task: "", owner: "", due: "" });
 const blank = () => ({
   title: "", date: today(), start: "", end: "", place: "", attendees: "", absentees: "", recorder: "",
   purpose: "", agenda: [blankAgenda()], decisions: "", todos: [blankTodo()], pending: "", next: "", notes: "", source: "manual",
+  summary: "", mailType: "internal", sender: ls("gm:sender") || "", mailSubject: "", mailBody: "", attachFull: true,
 });
+const MAIL_TYPES = {
+  internal: { label: "参加者へ議事録を共有", rule: "社内の参加者に議事録を共有するメール。冒頭は「お疲れさまです。」。決定事項とToDo（担当・期限）を箇条書きで見やすく。各担当者に期限の確認をお願いする一文を入れる" },
+  report: { label: "欠席者・上司へ報告", rule: "会議に出ていない社内の人（欠席者や上司）への報告メール。冒頭は「お疲れさまです。」。最初に結論（何が決まったか）を2〜3行、次に経緯の要点、最後に今後の予定とToDo。判断が必要なことがあれば明記する" },
+  client: { label: "お客さま・社外へお礼と確認", rule: "社外の参加者（お客さま・取引先）へのお礼と確認のメール。丁寧なビジネス敬語で、冒頭は「いつもお世話になっております。」と名乗り。打ち合わせのお礼、決まったことの確認、お互いの宿題と期限、次回の予定。社内だけの事情（内部の費用感、社内の評価、雑談）は書かない。結びは「引き続きどうぞよろしくお願いいたします。」" },
+};
 
 function toText(m) {
   const out = [];
@@ -223,7 +235,7 @@ const Store = {
 /* ============ state ============ */
 function loadDraft() { try { const d = JSON.parse(ls("gm:draft") || "null"); return d && d.cur ? d : null; } catch { return null; } }
 const draft = loadDraft();
-const S = { view: "make", cur: draft?.cur || blank(), curId: draft?.curId || null, dirty: !!draft?.dirty, tx: draft?.tx || "", list: [], busy: false, status: "", statusErr: false, confirmDel: null };
+const S = { view: "make", busyKind: null, cur: { ...blank(), ...(draft?.cur || {}) }, curId: draft?.curId || null, dirty: !!draft?.dirty, tx: draft?.tx || "", list: [], busy: false, status: "", statusErr: false, confirmDel: null };
 function saveDraft() { ls("gm:draft", JSON.stringify({ cur: S.cur, curId: S.curId, dirty: S.dirty, tx: S.tx })); }
 
 /* ============ AI ============ */
@@ -285,6 +297,56 @@ ${text.slice(0, MAX)}
     setStatus(msg || "AIで当てはめられませんでした。もう一度お試しください", true);
   } finally { S.busy = false; render(); }
 }
+function aiError(e) {
+  return { not_granted: "AIの利用が許可されていません", rate_limited: "AIの利用上限に達しました。しばらくしてからお試しください", prompt_too_large: "議事録が長すぎます" }[e?.code] || "AIで作れませんでした。もう一度お試しください";
+}
+function hasContent(m) { return !!(m.title || (m.agenda || []).some((a) => a.topic || a.points) || m.decisions); }
+async function aiSummary() {
+  if (!sample || S.busyKind) return;
+  if (!hasContent(S.cur)) { toast("先に議事録を入れてください"); return; }
+  S.busyKind = "sum"; S.cur.summary = "要約しています…"; render();
+  try {
+    const r = await sample(`次の議事録を、会議に出ていない人が10秒で分かるように要約してください。
+ルール:
+- 3〜5行。各行「・」で始め、40字以内
+- 1行目は「何の会議で、何が決まったか」
+- 次に大事な決定事項、最後に「誰が・何を・いつまでに」の要点
+- 議事録にないことは書かない。前置きや見出しは付けない
+
+議事録:
+${toText(S.cur)}`, { modelTier: "default", onText: ({ text }) => { S.cur.summary = text; const el = $("#f-summary"); if (el) el.value = text; } });
+    S.cur.summary = r.text.trim(); S.dirty = true; saveDraft(); toast("要約を作りました");
+  } catch (e) { S.cur.summary = ""; toast(aiError(e)); }
+  finally { S.busyKind = null; render(); }
+}
+async function aiMail() {
+  if (!sample || S.busyKind) return;
+  const m = S.cur;
+  if (!hasContent(m)) { toast("先に議事録を入れてください"); return; }
+  const t = MAIL_TYPES[m.mailType] || MAIL_TYPES.internal;
+  S.busyKind = "mail"; render();
+  try {
+    const r = await sample.json(`次の議事録をもとに、日本語のビジネスメールを作ってください。JSONだけを返してください。
+メールの種類: ${t.label}
+書き方: ${t.rule}
+差出人: ${m.sender || "（差出人名）"}
+ルール:
+- 議事録にない事実・日付・金額は書かない
+- 宛名は1行目に「〇〇様」「〇〇さん」など。出席者から分かれば使い、分からなければ「関係者各位」（社外なら「〇〇様」のまま残す）
+- 本文は読みやすく短めに。箇条書きは「・」
+- 最後に差出人名で署名
+- 議事録の全文はこちらで後ろに付けるので、本文に貼らない
+形式: {"subject":"件名（30字以内。例：【議事録】〇〇の打ち合わせ（11/20））","body":"本文"}
+
+議事録:
+${toText(m)}`, { modelTier: "default" });
+    if (!r?.body) throw new Error("empty");
+    S.cur.mailSubject = String(r.subject || "").trim(); S.cur.mailBody = String(r.body).trim();
+    S.dirty = true; saveDraft(); toast("メール文を作りました");
+  } catch (e) { toast(aiError(e)); }
+  finally { S.busyKind = null; render(); }
+}
+function mailFullBody(m) { return m.mailBody + (m.attachFull ? "\n\n――――――――――\n" + toText(m) : ""); }
 function setStatus(msg, err = false) { S.status = msg; S.statusErr = err; const el = $("#ai-status"); if (el) { el.textContent = msg; el.classList.toggle("err", err); } }
 
 const EXAMPLE = `【例文】
@@ -371,6 +433,38 @@ function viewMake() {
     <div class="row"><button class="btn primary" data-act="save">保存する</button><button class="btn" data-act="copy">テキストでコピー</button></div>
     <div class="note">メール・LINE・Slack にそのまま貼れる形です。</div>
     <pre class="out" id="out" tabindex="0">${esc(toText(S.cur))}</pre>
+  </section>
+  ${followUp()}`;
+}
+
+function followUp() {
+  const m = S.cur; const busy = S.busyKind;
+  const off = !sample ? `<div class="note">要約とメールのAI作成は claude.ai でこのページを開いたときに使えます。</div>` : "";
+  return `
+  <section class="panel" aria-labelledby="h4s">
+    <div class="step"><h2 id="h4s"><span>STEP 4</span>要約</h2>
+      <button class="btn${m.summary ? "" : " primary"}" data-act="ai-sum" ${sample && !busy ? "" : "disabled"}>${busy === "sum" ? "要約中…" : m.summary ? "作り直す" : "AIで要約する"}</button></div>
+    ${ta("summary", m.summary, "3〜5行の要約がここに入ります。手で書いてもOK", 5)}
+    <div class="row"><button class="btn small" data-act="copy-sum" ${m.summary ? "" : "disabled"}>要約をコピー</button></div>
+    ${off}
+  </section>
+
+  <section class="panel" aria-labelledby="h5s">
+    <div class="step"><h2 id="h5s"><span>STEP 5</span>メールを作る</h2></div>
+    <div class="mail-opts">
+      <label class="fl">送る相手<select id="f-mailType" data-k="mailType">${Object.entries(MAIL_TYPES).map(([k, t]) => `<option value="${k}"${k === m.mailType ? " selected" : ""}>${t.label}</option>`).join("")}</select></label>
+      <label class="fl">差出人（署名）${inp("sender", m.sender, "例：株式会社〇〇　山田")}</label>
+    </div>
+    <label class="cbx"><input type="checkbox" id="f-attachFull" data-k="attachFull"${m.attachFull ? " checked" : ""}> 議事録の全文をメールの最後に付ける</label>
+    <div class="row"><button class="btn${m.mailBody ? "" : " primary"}" data-act="ai-mail" ${sample && !busy ? "" : "disabled"}>${busy === "mail" ? "作成中…" : m.mailBody ? "作り直す" : "AIでメール文を作る"}</button></div>
+    <label class="fl">件名${inp("mailSubject", m.mailSubject, "件名")}</label>
+    <label class="fl">本文${ta("mailBody", m.mailBody, "メール本文がここに入ります。送る前に宛名と内容を確認してください", 10)}</label>
+    <div class="row">
+      <button class="btn small" data-act="copy-subj" ${m.mailSubject ? "" : "disabled"}>件名をコピー</button>
+      <button class="btn small" data-act="copy-body" ${m.mailBody ? "" : "disabled"}>本文をコピー${m.attachFull ? "（全文付き）" : ""}</button>
+    </div>
+    <div class="note">作った要約とメールは、議事録と一緒に保存されます。送信はお使いのメールアプリから行ってください。</div>
+    ${off}
   </section>`;
 }
 
@@ -464,7 +558,9 @@ document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "tx") { S.tx = t.value; saveDraft(); return; }
   if (!t.dataset.k) return;
-  setPath(S.cur, t.dataset.k, t.value); S.dirty = true; saveDraft();
+  setPath(S.cur, t.dataset.k, t.type === "checkbox" ? t.checked : t.value); S.dirty = true; saveDraft();
+  if (t.dataset.k === "sender") ls("gm:sender", t.value);
+  if (t.type === "checkbox" || ["summary", "mailSubject", "mailBody"].includes(t.dataset.k)) { syncFollowButtons(); }
   if (t.tagName === "SELECT") t.closest(".ag")?.setAttribute("data-status", t.value);
   const out = $("#out"); if (out) out.textContent = toText(S.cur);
 });
@@ -479,7 +575,17 @@ document.addEventListener("change", (e) => {
 });
 async function copyText(text, fallbackId) {
   try { await navigator.clipboard.writeText(text); toast("コピーしました"); }
-  catch { const el = document.getElementById(fallbackId); if (el) { const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); } toast("文字を選択しました。長押しかCtrl+Cでコピーしてください"); }
+  catch {
+    const el = document.getElementById(fallbackId);
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) { el.focus(); el.select(); }
+    else if (el) { const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); }
+    toast("文字を選択しました。長押しかCtrl+Cでコピーしてください");
+  }
+}
+function syncFollowButtons() {
+  const m = S.cur; const set = (act, on) => { const b = document.querySelector(`[data-act="${act}"]`); if (b) b.disabled = !on; };
+  set("copy-sum", !!m.summary); set("copy-subj", !!m.mailSubject); set("copy-body", !!m.mailBody);
+  const b = document.querySelector('[data-act="copy-body"]'); if (b) b.textContent = "本文をコピー" + (m.attachFull ? "（全文付き）" : "");
 }
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-act]"); if (!el) return;
@@ -503,6 +609,11 @@ document.addEventListener("click", async (e) => {
     catch (err) { toast(err?.code === "quota_exceeded" ? "保存容量がいっぱいです。古い議事録を削除してください" : "保存できませんでした。もう一度お試しください"); }
   }
   else if (a === "copy") copyText(toText(S.cur), "out");
+  else if (a === "ai-sum") aiSummary();
+  else if (a === "ai-mail") aiMail();
+  else if (a === "copy-sum") copyText(S.cur.summary, "f-summary");
+  else if (a === "copy-subj") copyText(S.cur.mailSubject, "f-mailSubject");
+  else if (a === "copy-body") copyText(mailFullBody(S.cur), "f-mailBody");
   else if (a === "copy-prompt") copyText(RECORDER_PROMPT, "prompt-out");
   else if (a === "copy-id") { const m = S.list.find((x) => x.id === el.dataset.id); if (m) { try { await navigator.clipboard.writeText(toText(m)); toast("コピーしました"); } catch { toast("コピーできませんでした。開いてからコピーしてください"); } } }
   else if (a === "open") {
