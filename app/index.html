@@ -184,7 +184,34 @@ textarea { resize: vertical; min-height: 64px; }
 
 /* nav */
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.nav-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
+.nav-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+/* research */
+.seg.tight button { font-size: 12px; padding: 8px 2px; white-space: nowrap; }
+.chips-ex { display: flex; gap: 6px; flex-wrap: wrap; }
+.ex { border: 1px dashed var(--line); background: transparent; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--muted); text-align: left; }
+.ex:hover { border-color: var(--accent); color: var(--accent); }
+.badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
+.badge.quick { background: var(--sunk); color: var(--muted); }
+.badge.queued { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.badge.deep { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.conclusion { font-weight: 700; font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.pts { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 14px; }
+.pts li { overflow-wrap: anywhere; }
+.pts .s { font-size: 12px; margin-left: 4px; }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.tbl { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 13px; }
+.tbl th, .tbl td { padding: 8px 10px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); }
+.tbl thead th { border-top: 0; background: var(--sunk); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.tbl td:first-child { font-weight: 700; }
+.res-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 16px; border-top: 1px dashed var(--line); background: none; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; text-align: left; cursor: pointer; }
+.res-row:first-child { border-top: 0; }
+.res-row:hover, .res-row[aria-current=true] { background: var(--accent-soft); }
+.res-row .q { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-row .c { grid-column: 1 / -1; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fu { display: grid; gap: 4px; padding: 10px 0; border-top: 1px dashed var(--line); }
+.fu:first-child { border-top: 0; }
+.fu b { font-size: 13px; }
 
 /* money */
 .yen { font-family: var(--f-display); font-weight: 400; font-size: clamp(34px, 10vw, 48px); line-height: 1.05; font-variant-numeric: tabular-nums; }
@@ -233,6 +260,7 @@ textarea { resize: vertical; min-height: 64px; }
   <div class="nav-in">
     <a href="#today" data-v="today"><span class="k">令</span>今日</a>
     <a href="#brief" data-v="brief"><span class="k">報</span>朝刊</a>
+    <a href="#research" data-v="research"><span class="k">調</span>調べる</a>
     <a href="#cal" data-v="cal"><span class="k">暦</span>予定</a>
     <a href="#notes" data-v="notes"><span class="k">帳</span>記録</a>
     <a href="#money" data-v="money"><span class="k">稼</span>収入</a>
@@ -336,6 +364,18 @@ const DEFAULT_PROFILE = {
   aiTarget: 0,
 };
 const INCOME_CAT = { ai: "AI", baito: "バイト", other: "その他" };
+const RES_KINDS = {
+  market: { label: "競合・相場", cols: ["サービス・競合", "内容", "料金の目安", "強み・特徴"],
+    focus: "競合サービスの内容と料金相場、需要の大きさ、差別化の余地。料金は円で、幅で示す",
+    ex: ["飲食店向けSNS投稿代行の料金相場と競合", "ココナラの「AI 業務効率化」出品の価格帯と売れ筋", "士業事務所の議事録・書類作成をAIで代行するサービスの競合", "中小企業向けChatGPT導入支援の相場"] },
+  tool: { label: "AIツール", cols: ["ツール", "得意なこと", "料金", "向いている作業"],
+    focus: "使えるツールの比較（得意なこと・料金・無料枠・日本語対応・注意点）と、具体的な使い方の手順",
+    ex: ["議事録の自動作成に使えるAIツールの比較", "問い合わせ対応チャットボットを作れるノーコードツール", "Zapier・Make・n8nの違いと料金", "SNS用の画像を作れるAIの比較"] },
+  sns: { label: "SNS集客", cols: ["型・手法", "内容", "向いている媒体", "真似するポイント"],
+    focus: "伸びている投稿の型、発信の頻度、プロフィールの作り方、問い合わせにつなげる導線。媒体ごとの違い",
+    ex: ["AI効率化の発信で伸びている投稿の型（X）", "Instagramで事業者から問い合わせを取る導線", "TikTokでBtoBサービスを集客している事例", "フォロワー0から始める発信の最初の30日"] },
+  free: { label: "その他", cols: null, focus: "質問に端的に答える", ex: ["開業届を出すタイミングと必要なもの", "業務委託契約書に入れておくべき項目"] },
+};
 const yen = (n) => "¥" + Math.round(n || 0).toLocaleString("ja-JP");
 
 /* ============ pay & income ============ */
@@ -441,6 +481,17 @@ const Store = {
     try { localStorage.setItem("kc:" + coll, JSON.stringify(o)); } catch {}
     this._emit(coll); return Promise.resolve();
   },
+  // merge a few fields into an existing doc (so a write from the page never wipes fields Claude added)
+  patch(coll, id, data) {
+    if (!this.local) {
+      const key = coll + "/" + id;
+      queues[key] = (queues[key] || Promise.resolve()).then(() => db.collection(coll).doc(id).update(data)).catch((e) => { console.warn(e); toast("保存できませんでした。もう一度お試しください"); });
+      return queues[key];
+    }
+    const o = this._read(coll); o[id] = { ...(o[id] || {}), ...data };
+    try { localStorage.setItem("kc:" + coll, JSON.stringify(o)); } catch {}
+    this._emit(coll); return Promise.resolve();
+  },
   del(coll, id) {
     if (!this.local) {
       const key = coll + "/" + id;
@@ -459,6 +510,7 @@ const S = {
   profile: null, days: {}, events: [], briefs: [], ideas: [], diary: {}, posts: [], reviews: {}, income: [], moneyMonth: null,
   loaded: {}, view: "today", calMonth: null, selDate: today(), briefDate: null, notesTab: ls("kc:notesTab") || "ideas",
   busy: {}, aiOut: {},
+  research: [], resKind: ls("kc:resKind") || "market", resSel: null, resFilter: "", resQ: "", resFu: "",
 };
 const prof = () => ({ ...DEFAULT_PROFILE, ...(S.profile || {}) });
 const startDate = () => prof().startDate || today();
@@ -620,7 +672,7 @@ async function aiText(slot, prompt) {
 function render() {
   const v = S.view;
   document.querySelectorAll(".nav a").forEach((a) => { if (a.dataset.v === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  const html = { today: viewToday, brief: viewBrief, cal: viewCal, notes: viewNotes, money: viewMoney, growth: viewGrowth }[v]();
+  const html = { today: viewToday, brief: viewBrief, research: viewResearch, cal: viewCal, notes: viewNotes, money: viewMoney, growth: viewGrowth }[v]();
   const app = $("#app");
   const focusId = document.activeElement?.id; const pos = document.activeElement?.selectionStart;
   app.innerHTML = html;
@@ -761,6 +813,138 @@ function viewBrief() {
     ${sel.postIdeas.map((p, i) => `<article class="item"><div class="eyebrow">${esc(p.platform)}</div><p style="white-space:pre-wrap">${esc(p.text)}</p>
       <div class="src"><button class="linkbtn" data-act="copy" data-text="${esc(p.text)}">コピー</button><button class="linkbtn" data-act="draft-from" data-b="${esc(sel.id)}" data-i="${i}">発信の下書きに追加</button></div></article>`).join("")}
   </section>` : ""}`;
+}
+
+/* ============ research ============ */
+const resTitle = (r) => String(r?.q || "").slice(0, 80);
+function normRes(o) {
+  if (!o || typeof o !== "object") return null;
+  const str = (v, n) => String(v ?? "").trim().slice(0, n);
+  const points = (Array.isArray(o.points) ? o.points : []).slice(0, 8).map((p) => typeof p === "string" ? { text: str(p, 400) } : { text: str(p?.text, 400), url: safeUrl(p?.url), source: str(p?.source, 40) }).filter((p) => p.text);
+  const t = o.table && Array.isArray(o.table.cols) && Array.isArray(o.table.rows) && o.table.rows.length
+    ? { cols: o.table.cols.slice(0, 6).map((c) => str(c, 30)), rows: o.table.rows.slice(0, 12).map((r) => (Array.isArray(r) ? r : []).slice(0, 6).map((c) => str(c, 200))) } : null;
+  return { conclusion: str(o.conclusion, 400), points, table: t, chance: str(o.chance, 300), next: (Array.isArray(o.next) ? o.next : []).slice(0, 4).map((x) => str(x, 200)).filter(Boolean),
+    searchHints: (Array.isArray(o.searchHints) ? o.searchHints : []).slice(0, 4).map((x) => str(x, 60)).filter(Boolean) };
+}
+async function aiResearch(id) {
+  const r = S.research.find((x) => x.id === id); if (!r || !sample || S.busy["res-" + id]) return;
+  const k = RES_KINDS[r.kind] || RES_KINDS.free;
+  S.busy["res-" + id] = true; render();
+  const prompt = `あなたは「AIで業務効率化の代行・成果物の納品」で起業を目指す人のリサーチ担当です。ターゲットは中小企業・個人事業主。
+次の調べ物に、忙しい本人がスマホで30秒で読めるように答えてください。
+
+調べ物: ${r.q}
+種類: ${k.label}（観点：${k.focus}）
+本人の目標: ${prof().goal}
+現在のフェーズ: ${PHASES[phaseIndex(today())].name}
+
+ルール:
+- あなたはWebを見られない。学習済みの知識だけで答え、URLは書かない
+- 料金・数値・機能・最新動向は変わりやすいので、該当する文の末尾に「（要確認）」を付ける
+- 知らない・自信がないことは推測で埋めず「不明」と書く
+- 事実と意見を分ける。日本の事情を優先する
+- chance は、この調べ物の結果を本人のAI代行サービスでどう売上に変えるかを1文で具体的に
+- next は、次に確かめること・今日やることを短く
+- searchHints は、Webで裏取りするときの検索語
+${k.cols ? `- table は列 ${JSON.stringify(k.cols)} で3〜6行` : "- 比較が役立つときだけ table を作る。不要なら null"}
+
+形式（JSONだけ）: {"conclusion":"結論を2文以内","points":["要点（3〜5個、各60字以内）"],"table":{"cols":[],"rows":[[]]},"chance":"","next":["",""],"searchHints":["","",""]}`;
+  try {
+    const out = normRes(await sample.json(prompt, { modelTier: "default" }));
+    if (!out || !out.conclusion) throw new Error("empty");
+    await Store.patch("research", id, { quick: out, quickAt: Date.now(), updatedAt: Date.now() });
+  } catch (e) {
+    toast(e?.code === "not_granted" ? "AIの利用が許可されていません" : e?.code === "rate_limited" ? "AIの利用上限に達しました。しばらくしてからお試しください" : "AIが答えられませんでした。もう一度お試しください");
+  } finally { S.busy["res-" + id] = false; render(); }
+}
+async function aiFollow(id, q) {
+  const r = S.research.find((x) => x.id === id); if (!r || !sample || S.busy["fu-" + id]) return;
+  const base = r.deep || r.quick;
+  S.busy["fu-" + id] = true; S.aiOut["fu-" + id] = "考えています…"; render();
+  try {
+    const res = await sample(`あなたは、AI業務効率化の代行で起業を目指す人のリサーチ担当です。前の調べ物の続きの質問に、日本語で300字以内、短い段落で答えてください。見出し記号は使わない。Webは見られないので、料金・数値・最新情報には「（要確認）」を付け、知らないことは不明と書く。
+元の調べ物: ${r.q}
+これまでの結論: ${base?.conclusion || "なし"}
+要点: ${(base?.points || []).map((p) => p.text).join(" / ") || "なし"}
+これまでの追加質問: ${(r.followups || []).slice(-3).map((f) => `Q:${f.q} A:${f.a.slice(0, 200)}`).join(" / ") || "なし"}
+今回の質問: ${q}`, { onText: ({ text }) => { S.aiOut["fu-" + id] = text; const el = document.querySelector(`[data-ai-out="fu-${id}"]`); if (el) el.textContent = text; } });
+    const fu = [...(r.followups || []), { q: q.slice(0, 300), a: String(res.text || "").slice(0, 2000), at: Date.now() }].slice(-12);
+    await Store.patch("research", id, { followups: fu, updatedAt: Date.now() }); S.resFu = "";
+  } catch (e) { toast(e?.code === "rate_limited" ? "AIの利用上限に達しました" : "答えられませんでした"); }
+  finally { S.busy["fu-" + id] = false; S.aiOut["fu-" + id] = ""; render(); }
+}
+function resBadge(r) {
+  if (r.deep) return `<span class="badge deep">出典付き</span>`;
+  if (r.status === "queued") return `<span class="badge queued">Web調査待ち</span>`;
+  return `<span class="badge quick">AIの回答</span>`;
+}
+function resBody(x, deep) {
+  if (!x) return "";
+  return `
+    <div class="conclusion">${esc(x.conclusion)}</div>
+    ${x.points?.length ? `<ul class="pts">${x.points.map((p) => `<li>${esc(p.text)}${safeUrl(p.url) ? `<a class="s" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener">${esc(p.source || "出典")}</a>` : p.source ? `<span class="s muted">${esc(p.source)}</span>` : ""}</li>`).join("")}</ul>` : ""}
+    ${x.table?.rows?.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr>${x.table.cols.map((c) => `<th scope="col">${esc(c)}</th>`).join("")}</tr></thead><tbody>${x.table.rows.map((row) => `<tr>${row.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}
+    ${x.chance ? `<div class="chance"><b>ビジネスの種</b>　${esc(x.chance)}</div>` : ""}
+    ${x.next?.length ? `<div><div class="eyebrow">次にやること</div><ul class="pts" style="margin-top:4px">${x.next.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>` : ""}
+    ${deep && x.sources?.length ? `<div class="src">出典：${x.sources.slice(0, 8).map((s) => safeUrl(s.url) ? `<a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.source || s.title || "記事")}</a>` : "").join("")}</div>` : ""}`;
+}
+function viewResearch() {
+  const kind = RES_KINDS[S.resKind] ? S.resKind : "market"; const K = RES_KINDS[kind];
+  const all = [...S.research].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const f = S.resFilter.trim().toLowerCase();
+  const list = f ? all.filter((r) => [r.q, r.quick?.conclusion, r.deep?.conclusion].join(" ").toLowerCase().includes(f)) : all;
+  const sel = all.find((r) => r.id === S.resSel) || null;
+  const queued = all.filter((r) => r.status === "queued").length;
+  let detail = "";
+  if (sel) {
+    const busy = S.busy["res-" + sel.id]; const main = sel.deep || sel.quick;
+    detail = `
+    <section class="panel" aria-labelledby="h-res-sel">
+      <div class="sec-head"><div class="row"><span class="ptag">${esc(RES_KINDS[sel.kind]?.label || "調べ物")}</span>${resBadge(sel)}</div><button class="linkbtn" data-act="res-sel" data-id="">閉じる</button></div>
+      <h2 id="h-res-sel" style="font-family:var(--f-body);font-weight:700;font-size:18px">${esc(sel.q)}</h2>
+      ${busy ? `<div class="ai-out">調べています…（20秒ほど）</div>` : ""}
+      ${!busy && !main ? `<div class="muted" style="font-size:14px">${sel.status === "queued" ? "Webでの調査を予約済みです。結果が届いたらここに表示し、スマホに通知します。" : "まだ回答がありません。"}</div>` : ""}
+      ${sel.deep ? `<div class="muted" style="font-size:12px">Webで確認した内容です（${sel.deep.generatedAt ? esc(String(sel.deep.generatedAt).slice(0, 16).replace("T", " ")) : ""}）</div>` : sel.quick ? `<div class="notice">AIの知識からの回答です。「（要確認）」の部分は、Webで裏取りしてから使ってください。</div>` : ""}
+      ${resBody(main, !!sel.deep)}
+      ${sel.deep && sel.quick ? `<details><summary class="muted" style="font-size:13px;cursor:pointer">最初のAIの回答を見る</summary><div style="display:grid;gap:10px;margin-top:10px">${resBody(sel.quick, false)}</div></details>` : ""}
+      <div class="row">
+        ${main ? `<button class="btn small" data-act="res-idea" data-id="${esc(sel.id)}">アイデア帳に保存</button><button class="btn small" data-act="copy" data-text="${esc([sel.q, main.conclusion, ...(main.points || []).map((p) => "・" + p.text + (p.url ? " " + p.url : "")), main.chance ? "ビジネスの種：" + main.chance : ""].filter(Boolean).join("\n"))}">コピー</button>` : ""}
+        ${!sel.deep && sel.status !== "queued" ? `<button class="btn small" data-act="res-deep" data-id="${esc(sel.id)}">Webで裏取りする（出典付き）</button>` : ""}
+        ${sample && !sel.quick && !busy ? `<button class="btn small" data-act="res-retry" data-id="${esc(sel.id)}">AIに答えてもらう</button>` : ""}
+        <button class="btn small ghost" data-act="res-del" data-id="${esc(sel.id)}"${S.resDelArm === sel.id ? ' style="color:var(--seal);border-color:var(--seal)"' : ""}>${S.resDelArm === sel.id ? "もう一度押すと削除" : "削除"}</button>
+      </div>
+      ${sel.status === "queued" && main ? `<div class="muted" style="font-size:12px">Webでの裏取りを予約済み。結果が届くと、この上の内容が出典付きに置き換わります。</div>` : ""}
+    </section>
+    ${sample && main ? `<section class="panel" aria-labelledby="h-fu">
+      <h2 id="h-fu">続けて聞く</h2>
+      ${(sel.followups || []).length ? `<div>${sel.followups.map((x) => `<div class="fu"><b>Q. ${esc(x.q)}</b><p style="margin:0;font-size:14px;white-space:pre-wrap">${esc(x.a)}</p></div>`).join("")}</div>` : ""}
+      ${S.busy["fu-" + sel.id] ? `<div class="ai-out" data-ai-out="fu-${esc(sel.id)}">${esc(S.aiOut["fu-" + sel.id] || "")}</div>` : ""}
+      <label class="f">追加の質問<input type="text" id="res-fu" value="${esc(S.resFu)}" placeholder="例：いちばん安く始めるならどれ？"></label>
+      <div class="row"><button class="btn" data-act="res-follow" data-id="${esc(sel.id)}" ${S.busy["fu-" + sel.id] ? "disabled" : ""}>聞く</button></div>
+    </section>` : ""}`;
+  }
+  return `
+  <header class="top"><div><div class="brand">起業司令室 · 調べる</div><h2>調べ物</h2></div>${queued ? `<span class="chip baito">Web調査待ち ${queued}件</span>` : ""}</header>
+  ${detail}
+  <section class="panel" aria-labelledby="h-res-new">
+    <h2 id="h-res-new">何を調べますか</h2>
+    <div class="seg tight" role="group" aria-label="調べ物の種類">${Object.entries(RES_KINDS).map(([k, v]) => `<button data-act="res-kind" data-k="${k}" aria-pressed="${k === kind}">${v.label}</button>`).join("")}</div>
+    <label class="f">知りたいこと<textarea id="res-q" rows="2" placeholder="例：${esc(K.ex[0])}">${esc(S.resQ)}</textarea></label>
+    <div class="chips-ex" aria-label="例">${K.ex.map((e) => `<button class="ex" data-act="res-ex" data-t="${esc(e)}">${esc(e)}</button>`).join("")}</div>
+    <label class="cbx"><input type="checkbox" id="res-web" ${ls("kc:resWeb") === "0" ? "" : "checked"}>Webでも出典付きで調べる（10・13・16・19・22時ごろに順番に調べ、終わったら通知）</label>
+    <div class="row"><button class="btn primary" data-act="res-run">調べる</button>${sample ? `<span class="muted" style="font-size:12px">まずAIがすぐに要点を答えます</span>` : `<span class="muted" style="font-size:12px">この表示ではAIの即答は使えません。Web調査の予約だけ行います</span>`}</div>
+  </section>
+  <section class="sheet" aria-labelledby="h-res-list">
+    <div class="panel" style="border:0;border-radius:0;border-bottom:1px solid var(--line)">
+      <div class="sec-head"><h2 id="h-res-list">調べたこと</h2><span class="mono muted" style="font-size:12px">${all.length}件</span></div>
+      ${all.length > 3 ? `<input type="text" id="res-filter" value="${esc(S.resFilter)}" placeholder="キーワードで探す" aria-label="調べたことを検索">` : ""}
+    </div>
+    <div class="list">${list.length ? list.map((r) => `<button class="res-row" data-act="res-sel" data-id="${esc(r.id)}" aria-current="${r.id === S.resSel}">
+      <span class="q">${esc(resTitle(r))}</span>
+      <span class="row" style="gap:6px">${resBadge(r)}<span class="mono muted" style="font-size:11px">${esc(new Date(r.createdAt || 0).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }))}</span></span>
+      <span class="c">${esc((r.deep || r.quick)?.conclusion || (S.busy["res-" + r.id] ? "調べています…" : r.status === "queued" ? "Webで調べる順番待ち" : ""))}</span>
+    </button>`).join("") : `<div class="empty"><b>${f ? "見つかりませんでした" : "まだ何も調べていません"}</b><span>${f ? "別のキーワードで探してください。" : "上の例を押すと、すぐに試せます。調べた結果はここに溜まります。"}</span></div>`}</div>
+  </section>`;
 }
 
 function viewCal() {
@@ -1059,6 +1243,9 @@ document.addEventListener("input", (e) => {
   const id = e.target.id;
   if (id === "diary-text") S.draftDiary = e.target.value;
   if (id?.startsWith("rv-")) { S.draftRv = S.draftRv || {}; S.draftRv[id.slice(3)] = e.target.value; }
+  if (id === "res-q") S.resQ = e.target.value;
+  if (id === "res-fu") S.resFu = e.target.value;
+  if (id === "res-filter") { S.resFilter = e.target.value; render(); }
 });
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-act]"); if (!el) return;
@@ -1083,6 +1270,31 @@ document.addEventListener("click", async (e) => {
     setTaskDone(d, "diary", true); toast("日記を保存しました"); render();
   }
   else if (a === "brief-date") { S.briefDate = ds.date; render(); }
+  else if (a === "res-kind") { S.resKind = ds.k; ls("kc:resKind", ds.k); render(); }
+  else if (a === "res-ex") { S.resQ = ds.t; render(); const q = $("#res-q"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
+  else if (a === "res-sel") { S.resSel = ds.id || null; S.resFu = ""; S.resDelArm = null; render(); if (ds.id) window.scrollTo({ top: 0, behavior: "smooth" }); }
+  else if (a === "res-run") {
+    const q = ($("#res-q")?.value || "").trim(); if (!q) { toast("知りたいことを入力してください"); return; }
+    const web = !!$("#res-web")?.checked || !sample; ls("kc:resWeb", $("#res-web")?.checked ? "1" : "0");
+    const id = uid(); const doc = { q: q.slice(0, 300), kind: RES_KINDS[S.resKind] ? S.resKind : "market", status: web ? "queued" : "quick", quick: null, deep: null, followups: [], createdAt: Date.now(), updatedAt: Date.now(), ...(web ? { queuedAt: Date.now() } : {}) };
+    S.research = [{ id, ...doc }, ...S.research]; S.resSel = id; S.resQ = "";
+    await Store.put("research", id, doc);
+    if (web) toast(sample ? "AIが答えます。Webでの裏取りも予約しました" : "Webでの調査を予約しました");
+    render(); window.scrollTo({ top: 0, behavior: "smooth" });
+    if (sample) aiResearch(id);
+  }
+  else if (a === "res-retry") aiResearch(ds.id);
+  else if (a === "res-deep") { await Store.patch("research", ds.id, { status: "queued", queuedAt: Date.now(), updatedAt: Date.now() }); toast("Webでの裏取りを予約しました。終わったら通知します"); }
+  else if (a === "res-follow") { const q = ($("#res-fu")?.value || "").trim(); if (!q) { toast("質問を入力してください"); return; } aiFollow(ds.id, q); }
+  else if (a === "res-del") {
+    if (S.resDelArm !== ds.id) { S.resDelArm = ds.id; render(); return; }
+    S.resDelArm = null; await Store.del("research", ds.id); S.resSel = null; toast("削除しました"); render();
+  }
+  else if (a === "res-idea") {
+    const r = S.research.find((x) => x.id === ds.id); const m = r?.deep || r?.quick; if (!m) return;
+    const url = (m.points || []).find((p) => safeUrl(p.url))?.url || (m.sources || []).find((s) => safeUrl(s.url))?.url || "";
+    await addIdea({ title: m.chance || r.q, memo: `${r.q}\n${m.conclusion}`, from: `調べ物 · ${RES_KINDS[r.kind]?.label || ""}`, url: safeUrl(url) });
+  }
   else if (a === "save-idea-from") {
     const b = S.briefs.find((x) => x.id === ds.b); const it = b?.sections?.find((s) => s.key === ds.s)?.items?.[+ds.i]; if (!it) return;
     await addIdea({ title: it.chance || it.title, memo: it.chance ? it.title : (it.summary || ""), from: `朝刊 ${ds.b.slice(5).replace("-", "/")} · ${SECTIONS.find((x) => x[0] === ds.s)?.[1] || ""}`, url: safeUrl(it.url) });
@@ -1206,7 +1418,7 @@ function readProfileForm() {
     dayStart: v("pf-ds") || cur.dayStart, dayEnd: v("pf-de") || cur.dayEnd, commute: Math.max(0, Math.min(180, +(v("pf-cm") ?? cur.commute) || 0)),
     aiTarget: Math.max(0, +(v("pf-ait") ?? cur.aiTarget) || 0) };
 }
-document.addEventListener("change", (e) => { if (e.target.id === "ev-kind") { const f = $("#baito-fields"); if (f) f.hidden = e.target.value !== "baito"; } });
+document.addEventListener("change", (e) => { if (e.target.id === "res-web") ls("kc:resWeb", e.target.checked ? "1" : "0"); if (e.target.id === "ev-kind") { const f = $("#baito-fields"); if (f) f.hidden = e.target.value !== "baito"; } });
 async function addIdea({ title, memo = "", from = "", url = "" }) {
   await Store.put("ideas", uid(), { title: title.slice(0, 200), memo: memo.slice(0, 1000), from, url, date: today(), createdAt: Date.now() });
   if (!S.days[today()]) await savePlan(today());
@@ -1222,7 +1434,7 @@ async function addEvent({ title, kind, start, end, ...extra }) {
 }
 
 /* ============ routing + boot ============ */
-const VIEWS = ["today", "brief", "cal", "notes", "money", "growth"];
+const VIEWS = ["today", "brief", "research", "cal", "notes", "money", "growth"];
 function route() { const h = location.hash.slice(1); S.view = VIEWS.includes(h) ? h : "today"; render(); window.scrollTo(0, 0); }
 window.addEventListener("hashchange", route);
 
@@ -1236,6 +1448,7 @@ function subscribe() {
   Store.watch("posts", (rows) => { S.posts = rows; render(); });
   Store.watch("reviews", (rows) => { S.reviews = Object.fromEntries(rows.map((r) => [r.id, r])); render(); });
   Store.watch("income", (rows) => { S.income = rows; render(); });
+  Store.watch("research", (rows) => { S.research = rows; render(); });
 }
 async function boot() {
   route();
