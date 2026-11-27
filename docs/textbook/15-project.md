@@ -418,7 +418,7 @@ proofreader サブエージェントを使って、drafts/blog-01.md を校正�
 
 ## 確認テスト
 
-**問1.** さくらさんは CLAUDE.md に「.env は絶対に読まない」と書きました。それなのに、なぜ `.claude/settings.json` にも deny ルールを書いたのですか？
+**問1** さくらさんは CLAUDE.md に「.env は絶対に読まない」と書きました。それなのに、なぜ `.claude/settings.json` にも deny ルールを書いたのですか？
 
 <details><summary>答えを見る</summary>
 
@@ -426,7 +426,7 @@ CLAUDE.md の内容は Claude への **「お願い」** なので、守られ�
 
 </details>
 
-**問2.** 週報の作り方を毎週説明するのをやめるために、さくらさんは何を作りましたか？ また、どうやって呼び出しますか？
+**問2** 週報の作り方を毎週説明するのをやめるために、さくらさんは何を作りましたか？ また、どうやって呼び出しますか？
 
 <details><summary>答えを見る</summary>
 
@@ -434,7 +434,7 @@ CLAUDE.md の内容は Claude への **「お願い」** なので、守られ�
 
 </details>
 
-**問3.** 校正サブエージェントの `tools` に `Read, Grep, Glob` だけを入れたのはなぜですか？
+**問3** 校正サブエージェントの `tools` に `Read, Grep, Glob` だけを入れたのはなぜですか？
 
 <details><summary>答えを見る</summary>
 
@@ -442,7 +442,7 @@ CLAUDE.md の内容は Claude への **「お願い」** なので、守られ�
 
 </details>
 
-**問4.** `/schedule` で予約した毎朝のまとめに「sakura-office/data の売上も一緒にまとめて」と追加しても、うまくいきません。なぜですか？
+**問4** `/schedule` で予約した毎朝のまとめに「sakura-office/data の売上も一緒にまとめて」と追加しても、うまくいきません。なぜですか？
 
 <details><summary>答えを見る</summary>
 
@@ -450,7 +450,7 @@ CLAUDE.md の内容は Claude への **「お願い」** なので、守られ�
 
 </details>
 
-**問5.** 最後のコミットの前に「.env が含まれていないことも確認して」と頼んだのはなぜですか？
+**問5** 最後のコミットの前に「.env が含まれていないことも確認して」と頼んだのはなぜですか？
 
 <details><summary>答えを見る</summary>
 

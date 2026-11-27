@@ -352,7 +352,7 @@ echo '{"tool_input":{"command":"DELETE FROM users"}}' | scripts/validate-readonl
 
 ## 確認テスト
 
-**問1.** 「Claude がファイルを編集する前に、内容をチェックして止めたい」とき、どのイベントを使いますか？
+**問1** 「Claude がファイルを編集する前に、内容をチェックして止めたい」とき、どのイベントを使いますか？
 
 <details><summary>答えを見る</summary>
 
@@ -360,7 +360,7 @@ echo '{"tool_input":{"command":"DELETE FROM users"}}' | scripts/validate-readonl
 
 </details>
 
-**問2.** フックのスクリプトが終了コード `2` を返し、`>&2` でメッセージを出しました。どうなりますか？（`PreToolUse` の場合）
+**問2** フックのスクリプトが終了コード `2` を返し、`>&2` でメッセージを出しました。どうなりますか？（`PreToolUse` の場合）
 
 <details><summary>答えを見る</summary>
 
@@ -368,7 +368,7 @@ echo '{"tool_input":{"command":"DELETE FROM users"}}' | scripts/validate-readonl
 
 </details>
 
-**問3.** 実例1の `.env` を守るフックだけで、`.env` の中身は完全に守られますか？
+**問3** 実例1の `.env` を守るフックだけで、`.env` の中身は完全に守られますか？
 
 <details><summary>答えを見る</summary>
 
@@ -376,7 +376,7 @@ echo '{"tool_input":{"command":"DELETE FROM users"}}' | scripts/validate-readonl
 
 </details>
 
-**問4.** フックを設定するときに、いちばん気をつけるべきことは何ですか？
+**問4** フックを設定するときに、いちばん気をつけるべきことは何ですか？
 
 <details><summary>答えを見る</summary>
 
