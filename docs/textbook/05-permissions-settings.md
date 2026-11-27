@@ -270,4 +270,4 @@ Claude Code の中で `/status`（読み込まれている設定ファイルが�
 
 ---
 
-[← 第4章 上手な頼み方](04-prompting.md) ｜ [目次](README.md) ｜ [第6章 Git でセーブポイントを作る →](06-git.md)
+[← 第4章 伝わる指示の出し方](04-prompting.md) ｜ [目次](README.md) ｜ [第6章 Git でセーブポイントを作る →](06-git.md)
