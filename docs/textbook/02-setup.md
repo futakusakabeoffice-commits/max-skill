@@ -71,6 +71,8 @@ curl -fsSL https://claude.ai/install.sh | bash
 irm https://claude.ai/install.ps1 | iex
 ```
 
+> Windows で Git for Windows（Git という道具の Windows 版）のインストールが求められた場合は、[第6章 6-2](06-git.md) を参照してください。
+
 ### ほかの入れ方
 
 | 方法 | コマンド | 注意 |
@@ -184,7 +186,7 @@ claude update
 | パソコン | 表示する方法 |
 |---|---|
 | Mac（Finder） | `⌘ + Shift + .` |
-| Windows（エクスプローラー） | 「表示」→「隠しファイル」にチェック |
+| Windows 11（エクスプローラー） | 「表示」→「表示」→「隠しファイル」にチェック |
 
 ### `.md` ファイルを開く
 
