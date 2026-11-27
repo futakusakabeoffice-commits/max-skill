@@ -7,7 +7,9 @@
 > - 実例：`.env` を守る／編集したファイルを整形する／確認待ちを通知する
 > - フックを安全に使うための注意点
 >
-> **所要時間の目安**: 60分 ／ **前提**: 第5章（権限と設定）・第8章（CLAUDE.md）を読んでいること。この章は少し技術的です。最初は 12-1 と 12-5 の注意点だけ読んで、必要になったら戻ってきても構いません
+> 所要時間の目安: 60分 ／ 前提: [第11章](11-subagents.md)（特に[第5章](05-permissions-settings.md)と[第8章](08-claude-md-memory.md)）
+
+この章は少し技術的です。最初は 12-1 と 12-5 だけ読んで、必要になったら戻ってきても構いません。
 
 ---
 
@@ -98,6 +100,9 @@
 |---|---|
 | `0` | 問題なし。そのまま進める |
 | `2` | **ブロック**。`PreToolUse` なら、そのツールの実行を止める。エラー出力（`>&2` で出したメッセージ）が Claude に伝わる |
+| それ以外の0以外（`1` など） | エラー扱いだが **処理は続行する**（ブロックしない） |
+
+> **注意**: 「スクリプトが動かなかった」場合も「0以外」になり、**ブロックされずに素通り** します。実行権限（`chmod +x`）を付け忘れた、Windows で作ったファイルの改行コード（CRLF）が混ざっている、といった原因でフックが **黙って無効** になることがあるので、設定したら必ず自己テスト（実例1）をしましょう。
 
 `PostToolUse` のように「もう実行し終わった後」のイベントで `2` を返しても、実行は取り消せません。メッセージが Claude に伝わるだけです。
 
@@ -105,13 +110,15 @@
 
 フックのコマンドには、**標準入力** という形で、ツールの情報が JSON で渡されます。たとえばファイルを編集するときは、`tool_input.file_path` に対象のファイルのパスが入っています。この情報を取り出すために、`jq`（JSON を扱うコマンド）をよく使います。
 
-> jq は Mac なら `brew install jq` などで入れておきます。
+> **jq の入れ方**: まずターミナルで `jq --version` を実行し、バージョンが出れば入っています（macOS の新しい版には最初から入っていることがあります）。なければ Mac は `brew install jq`、Windows は `winget install jqlang.jq` で入れます。
+
+> **Windows の人へ**: この章の `.sh` のスクリプトは Mac / Linux 向けです。Windows では WSL や Git Bash の中で使うか、Claude に「このフックを PowerShell 版に書き直して」と頼んでください。
 
 ---
 
 ## 12-4 実例
 
-### 実例1：`.env` ファイルを読み書きさせない
+### 実例1：`.env` ファイルを読み書きさせない（Mac / Linux 向け）
 
 さくらさんのフォルダには、決済サービスの API キー（サービスを使うための合言葉）を書いた `.env` があります。これを Claude に **絶対に** 読ませたくありません。
 
@@ -122,9 +129,11 @@
 # jq がないとチェックできないので、その場合は安全側（ブロック）に倒す
 command -v jq >/dev/null 2>&1 || { echo "jq が見つかりません。インストールしてください。" >&2; exit 2; }
 
-# ツールの入力（JSON）から、対象のファイルパスを取り出す
-FILE=$(jq -r '.tool_input.file_path // empty')
-NAME=$(basename "$FILE")
+# ツールの入力（JSON）から、対象のファイルパスを取り出す（Grep は path という名前で渡される）
+# 読み取りに失敗したら、安全側（ブロック）に倒す
+FILE=$(jq -r '.tool_input.file_path // .tool_input.path // empty') || { echo "入力を読み取れませんでした。" >&2; exit 2; }
+# 大文字・小文字の違い（.ENV など）でもすり抜けないよう、小文字にそろえて比べる
+NAME=$(basename "$FILE" | tr 'A-Z' 'a-z')
 
 # .env / .env.local / .env.production などはブロック（.env.example は許可）
 if [[ "$NAME" == ".env" || ( "$NAME" == .env.* && "$NAME" != ".env.example" ) ]]; then
@@ -142,6 +151,14 @@ mkdir -p .claude/hooks
 chmod +x .claude/hooks/protect-env.sh
 ```
 
+**自己テスト**（設定の前に、スクリプトが正しく動くか確かめます）:
+
+```bash
+echo '{"tool_input":{"file_path":".env"}}' | .claude/hooks/protect-env.sh; echo $?
+```
+
+メッセージのあとに `2` と表示されれば成功です。`Permission denied` と出たら `chmod +x` を、`0` と出たらスクリプトの中身を見直します。
+
 保存するファイル: `.claude/settings.json`
 
 ```json
@@ -149,7 +166,7 @@ chmod +x .claude/hooks/protect-env.sh
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Read|Edit|Write",
+        "matcher": "Read|Edit|Write|Grep",
         "hooks": [
           {
             "type": "command",
@@ -162,11 +179,11 @@ chmod +x .claude/hooks/protect-env.sh
 }
 ```
 
-- `matcher` の `Read|Edit|Write` で、ファイルを **読む・編集する・作る** ときにだけ動きます。
+- `matcher` の `Read|Edit|Write|Grep` で、ファイルを **読む・編集する・作る・中を検索する** ときにだけ動きます。
 - `${CLAUDE_PROJECT_DIR}` は、プロジェクトのフォルダの場所に置き換わります。どのフォルダで作業していても、スクリプトが見つかるようにするための書き方です。
 - `.env.example`（中身が空のひな形）は、共有されることが多いので許可しています。
 
-> **注意**: このフックが止めるのは、Claude の **ファイルを読む・書くツール** だけです。コマンド（`Bash`）経由で読む方法は止められません。権限設定の `deny` に `"Read(./.env)"` も書いて二重に守り（[第5章](05-permissions-settings.md)）、そもそも `.env` を Git にコミットしないようにしましょう（[第7章](07-safety.md)）。
+> **注意**: このフックが止めるのは、Claude の **ファイルを読む・書く・検索するツールで `.env` そのものを指定したとき** だけです。フォルダ全体を検索したときや、コマンド（`Bash`）経由で読む方法は止められません。権限設定の `deny` に `"Read(./.env)"` も書いて二重に守り（[第5章](05-permissions-settings.md)）、そもそも `.env` を Git にコミットしないようにしましょう（[第7章](07-safety.md)）。
 
 ### 実例2：編集したファイルだけを整形する（Mac / Linux 向け）
 
@@ -183,7 +200,7 @@ Claude がファイルを編集・作成するたびに、**そのファイル�
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path') && npx --yes prettier --write --ignore-unknown \"$f\""
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); [ -z \"$f\" ] || npx --yes prettier --write --ignore-unknown \"$f\""
           }
         ]
       }
@@ -192,7 +209,7 @@ Claude がファイルを編集・作成するたびに、**そのファイル�
 }
 ```
 
-> - Node.js（プログラムを動かす土台ソフト）と jq が必要です。Windows ではそのままでは動きません。整形ツールを使っていないなら、試さなくて大丈夫です。
+> - Node.js（プログラムを動かす土台ソフト）と jq が必要です。ファイルのパスが取れなかったときは何もしません。整形ツールを使っていないなら、試さなくて大丈夫です。
 > - ブログ記事の Markdown や CLAUDE.md なども整形の対象になり、改行などが変わることがあります。
 > - `.`（フォルダ全体）を対象にするコマンドは、関係ないファイルまで書き換えてしまうので避けましょう。
 
@@ -226,7 +243,7 @@ Claude に作業を任せて別のことをしていると、確認待ちで止�
 
 1つの設定ファイルに複数のフックを書くときは、`"hooks"` の中にイベントを並べます。
 
-```json
+```text
 {
   "hooks": {
     "PreToolUse": [ … 実例1の中身 … ],
@@ -236,6 +253,56 @@ Claude に作業を任せて別のことをしていると、確認待ちで止�
 ```
 
 （`…` の部分は、実例の `[` から `]` までをそのまま入れます。この形のままでは動かないので注意してください）
+
+### 発展例：データベースを読み取り専用で調べるサブエージェント（Mac / Linux 向け）
+
+フックは、サブエージェント（[第11章](11-subagents.md)）の設定の中にも書けます。そのサブエージェントが動いている間だけ有効になります。ここでは「コマンドは使ってよいが、データを書き換える SQL（データベースへの命令）は禁止」という、`tools` や deny では表せない制限をフックで実現します。
+
+保存するファイル: `.claude/agents/db-reader.md`
+
+```markdown
+---
+name: db-reader
+description: データベースに読み取り専用のクエリを実行して分析する。売上や会員数などのデータを調べたいときに使う。
+tools: Bash
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "\"${CLAUDE_PROJECT_DIR}\"/scripts/validate-readonly-query.sh"
+---
+
+あなたはデータ分析担当です。SELECT 文だけを使ってデータを調べ、結果を分かりやすくまとめてください。
+```
+
+保存するファイル: `scripts/validate-readonly-query.sh`
+
+```bash
+#!/bin/bash
+# jq がないとチェックが素通りになるので、その場合は安全側（ブロック）に倒す
+command -v jq >/dev/null 2>&1 || { echo "jq が見つかりません。インストールしてください。" >&2; exit 2; }
+
+# ツールの入力（JSON）は標準入力で渡される。jq でコマンド部分を取り出す
+COMMAND=$(jq -r '.tool_input.command')
+
+# 書き込み系の SQL キーワードが含まれていたらブロック
+if printf '%s\n' "$COMMAND" | grep -qiwE '(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT)'; then
+  echo "書き込み系の操作はできません。SELECT を使ってください。" >&2
+  exit 2   # 終了コード 2 = このツール実行をブロックし、理由を Claude に伝える
+fi
+exit 0
+```
+
+```bash
+mkdir -p scripts
+# （上のスクリプトを scripts/validate-readonly-query.sh に保存してから）
+chmod +x scripts/validate-readonly-query.sh
+# 自己テスト（2 と表示されれば OK）
+echo '{"tool_input":{"command":"DELETE FROM users"}}' | scripts/validate-readonly-query.sh; echo $?
+```
+
+> **注意**: これは **簡易チェック** です。`SELECT REPLACE(...)` のような関数も止めてしまう一方、書き方によってはすり抜けることもあります。本当に守りたいなら、**読み取り権限しかないデータベースユーザー** で接続させるのが確実です。jq が必要です（12-3）。
 
 ---
 
@@ -257,11 +324,12 @@ Claude に作業を任せて別のことをしていると、確認待ちで止�
 
 - **目的**: `PreToolUse` フックでツールの実行を止められることを確かめる
 - **手順**:
-  1. 練習用のフォルダに、中身が `TEST_KEY=dummy` だけの `.env` を作る
-  2. 実例1のスクリプトと設定を保存し、`chmod +x` する
-  3. Claude Code を起動して「.env の中身を教えて」と頼む
-- **期待する結果**: 「.env ファイルは秘密情報なので、読み書きできません。」と止められる
-- **うまくいかないとき**: `/hooks` でフックが登録されているか確認します。スクリプトの場所（`.claude/hooks/protect-env.sh`）と実行権限、jq が入っているかも確認します
+  1. フックだけの効き目を確かめるため、第5章の deny 設定が **入っていない** 新しいフォルダを作る（`mkdir ~/hook-test && cd ~/hook-test`）
+  2. 中身が `TEST_KEY=dummy` だけの `.env` を作る（本物の秘密情報は使わない）
+  3. 実例1のスクリプトと設定を保存し、`chmod +x` と自己テストをする
+  4. `claude` を起動して「.env の中身を教えて」と頼む
+- **期待する結果**: 「.env ファイルは秘密情報なので、読み書きできません。」と止められる。**このメッセージが出れば、止めたのはフック** です（権限設定の deny で止まった場合は、権限で拒否されたという別の表示になります）
+- **うまくいかないとき**: `/hooks` でフックが登録されているか確認します。スクリプトの場所（`.claude/hooks/protect-env.sh`）、実行権限、jq が入っているかも確認します。終わったら `~/hook-test` は削除して構いません
 
 ### 練習2：確認待ちの通知を出す（Mac の人）
 
