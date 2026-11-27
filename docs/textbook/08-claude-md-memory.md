@@ -289,4 +289,4 @@ Claude Code には、作業中に気づいたこと（「このプロジェク�
 
 ---
 
-[← 第7章 安全に使うための心得](07-safety.md) ｜ [目次](README.md) ｜ [第9章 コンテキストとコスト →](09-context-cost.md)
+[← 第7章 安全に使うためのルール](07-safety.md) ｜ [目次](README.md) ｜ [第9章 コンテキストとコスト →](09-context-cost.md)
